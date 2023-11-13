@@ -3,7 +3,8 @@
     <bean id="hrdpVariants" class="edu.mcw.rgd.hrdpVariantLoad.HrdpVariants">
         <property name="version" value="HRDPVariant Loader -- ver. 1.0.0 -- Oct 30, 2023"/>
         <property name="sampleIdStart" value="3048"/>
-        <property name="inputDir" value="C:/Github/hrdp-variant-load-pipeline/src/main/dist/data/HRDP/"/>
+<!--        <property name="inputDir" value="C:/Github/hrdp-variant-load-pipeline/src/main/dist/data/HRDP/"/>-->
+        <property name="inputDir" value="/data/ftp-public/pub/strain_specific_variants/Dwinell_MCW_HybridRatDiversityProgram/Jan2023/mRatBN7/JointAnalysis_split_by_SingleSample/"/>
     </bean>
 
 </beans>
