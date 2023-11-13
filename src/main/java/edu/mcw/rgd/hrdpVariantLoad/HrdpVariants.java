@@ -1,76 +1,105 @@
 package edu.mcw.rgd.hrdpVariantLoad;
 
-import edu.mcw.rgd.dao.impl.SampleDAO;
-import edu.mcw.rgd.dao.impl.StrainDAO;
-import edu.mcw.rgd.dao.impl.variants.VariantDAO;
+import edu.mcw.rgd.dao.DataSourceFactory;
+import edu.mcw.rgd.datamodel.RgdId;
 import edu.mcw.rgd.datamodel.Sample;
+import edu.mcw.rgd.datamodel.variants.VariantMapData;
+import edu.mcw.rgd.datamodel.variants.VariantSampleDetail;
+import edu.mcw.rgd.process.Utils;
+import edu.mcw.rgd.util.Zygosity;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.io.*;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.zip.GZIPInputStream;
 
 public class HrdpVariants {
 
     private String version;
     int sampleIdStart;
-    private String vcfPath = null;
-    int mapKey = 0;
-
+    protected Logger logger = LogManager.getLogger("status");
+    private Zygosity zygosity = new Zygosity();
+    private String inputDir;
+    private int mapKey = 0;
+    private final DAO dao = new DAO();
+    private SimpleDateFormat sdt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     public void main(String[] args) throws Exception {
+
+        logger.info(getVersion());
+        logger.info("   "+dao.getConnection());
+
+        long pipeStart = System.currentTimeMillis();
+        logger.info("Pipeline started at "+sdt.format(new Date(pipeStart))+"\n");
 
         for (int i = 0; i < args.length; i++){
             switch (args[i]){
-                case "--inputDir":
-                    vcfPath = args[++i];
-                    break;
                 case "--mapKey":
                     mapKey = Integer.parseInt(args[++i]);
                     break;
-
             }
         }
 
+        geneCacheMap = new HashMap<>();
         // loops through files
-        File folder = new File(vcfPath);
+        File folder = new File(inputDir);
         ArrayList<File> files = new ArrayList<>();
         listFilesInFolder(folder, files);
 
         for (File file : files) {
             parse(file);
         }
+
+        logger.info("Total pipeline runtime -- elapsed time: "+
+                Utils.formatElapsedTime(pipeStart,System.currentTimeMillis()));
     }
 
     void parse(File file) throws Exception{
+
         // create samples and insert them
         // parse through files and insert variants
-        String strain = getStrainName(file.getName());
-        System.out.println(strain);
-        Integer strainRgdId = getStrainRgdId(strain);
+        String name = getStrainName(file.getName());
+//        System.out.println(name);
+        Integer strainRgdId = getStrainRgdId(name);
 
-        SampleDAO sampleDAO = new SampleDAO();
-        Sample sample = sampleDAO.getSampleByStrainRgdIdNMapKey(strainRgdId,mapKey);
+        Sample sample = dao.getSampleByAnalysisNameAndMapKey(name,mapKey);
 
         if (sample == null) {
+            logger.info("\t\tCreating new Sample for " + name);
             sample = new Sample();
             sample.setId(sampleIdStart);
             sampleIdStart++;
-            sample.setAnalysisName(strain);
+            sample.setAnalysisName(name);
 
             if (strainRgdId != 0) {
                 sample.setStrainRgdId(strainRgdId);
             }
             sample.setGender("U");
             sample.setDescription("Dr. Mindy Dwinell - Hybrid rat diversity program");
-            sample.setPatientId(372); // default is rat 7.2
+            sample.setPatientId(372); // default is rat 7.2 patient id, 372
             sample.setMapKey(mapKey);
             sample.setGrantNumber("R24OD022617");
-            VariantDAO vdao = new VariantDAO();
-            vdao.insertSample(sample);
+//            dao.insertSample(sample);
         }
 
         // parse file and insert/add samples to variants
+        logger.info("\tParsing file... "+file.getName());
+        BufferedReader br = openFile(file.getAbsolutePath());
+        String lineData;
+        List<VariantMapData> variants = new ArrayList<>();
+        List<VariantSampleDetail> samples = new ArrayList<>();
+        while ((lineData = br.readLine()) != null){
+            if (lineData.startsWith("#"))
+                continue;
+            String[] data = lineData.split("\t");
 
+            List<VariantMapData> vars = parseLineData(data, samples, sample);
+            variants.addAll(vars);
+
+        } // end of file read
+        // add sample id to all samples, then insert
+        System.out.println(variants.size());
     }
 
     void listFilesInFolder(File folder, ArrayList<File> vcfFiles) throws Exception {
@@ -107,12 +136,237 @@ public class HrdpVariants {
         return strain;
     }
 
+    List<VariantMapData> parseLineData(String[] data, List<VariantSampleDetail> samples, Sample s) throws Exception{
+        // CHROM  POS     ID      REF     ALT     QUAL    FILTER  INFO    FORMAT  ACI_EurMcwi_2019NG
+        VariantMapData v = new VariantMapData();
+        VariantSampleDetail vs = new VariantSampleDetail();
+        List<VariantMapData> vars = new ArrayList<>();
+        boolean needCopy = false;
+        Integer totalDepth = null;
+        String[] depths = new String[0];
+        // first check if ref or alt has a ','
+        // if yes, make a copy of
+        for (int i = 0; i < data.length; i++){
+            switch (i){
+                case 0: // chrom
+                    // chrM is for MT
+                    v.setChromosome(data[i].replace("chr",""));
+                    if (v.getChromosome().equalsIgnoreCase("M"))
+                        v.setChromosome("MT");
+                    break;
+                case 1: // pos
+                    int start = Integer.parseInt(data[i]);
+                    v.setStartPos(start);
+                    break;
+                case 2: // id
+                    if (!data[i].equals("."))
+                        v.setRsId(data[i]);
+                    break;
+                case 3: // ref
+                    if (data[i].contains(",")) {
+                        needCopy = true;
+                        v.setReferenceNucleotide(data[i]); // change in alt for padding base if it exists
+                    }
+                    else {
+                        v.setReferenceNucleotide(data[i]); // change in alt for padding base if it exists
+                    }
+                    break;
+                case 4: // alt
+                    // get end position, insertion - length of alt/var, deletion/SNP - start+1
+                    // also set padding base if possible
+                    // make sure to copy variant if there is a ','
+                    // '*' represents deletion
+                    if (data[i].contains(",")) {
+                        needCopy = true;
+                        v.setVariantNucleotide(data[i]);
+                    }
+                    else {
+
+                        if (data[i].equals("*")) {
+                            v.setVariantNucleotide(null);
+                            v.setEndPos(v.getStartPos() + v.getReferenceNucleotide().length());
+                            v.setVariantType("del");
+                        }
+                        else {
+                            String var = data[i];
+                            if (v.getReferenceNucleotide().length() > var.length() && var.length() == 1) {
+                                // deletion
+                                v.setPaddingBase(var);
+                                v.setVariantNucleotide(null);
+                                String ref = v.getReferenceNucleotide().substring(1);
+                                v.setReferenceNucleotide(ref);
+                                v.setVariantType("del");
+                            } else if (var.length() > v.getReferenceNucleotide().length() && v.getReferenceNucleotide().length() == 1) {
+                                // insertion
+                                v.setPaddingBase(v.getReferenceNucleotide());
+                                v.setReferenceNucleotide(null);
+                                var = var.substring(1);
+                                v.setVariantNucleotide(var);
+                                v.setVariantType("ins");
+                            } else {
+                                v.setVariantNucleotide(data[i]);
+                                if (v.getReferenceNucleotide().length() == v.getVariantNucleotide().length()) {
+                                    v.setEndPos(v.getStartPos() + 1);
+                                    if (v.getReferenceNucleotide().length() > 1)
+                                        v.setVariantType("MNV");
+                                    else
+                                        v.setVariantType("snp");
+                                } else if (v.getReferenceNucleotide().length() > v.getVariantNucleotide().length()) {
+                                    v.setEndPos(v.getStartPos() + v.getReferenceNucleotide().length());
+                                    v.setVariantType("del");
+                                } else {
+                                    v.setEndPos(v.getStartPos() + 1);
+                                    v.setVariantType("ins");
+                                }
+                            }
+                        }
+                    }
+                    break;
+                case 5: // qual
+                case 6: // filter
+                case 7: // info
+                    // In the INFO field (long line of annotations added in the analysis)  you will find AF – allele frequency 0.5 it is HET
+                    // AC=1; AF=0.500 ;AN=2;ANN=T
+                case 8: //format
+                    // In the FORMAT field you will find DP – reads depth (total number of reads per this position)
+                    break;
+                case 9: // actual format data
+                    // 0/1 :ref 32,allele 9: total depth 41 :99:130,0,872
+                    String[] formatData = data[i].split(":");
+                    depths = formatData[1].split(","); // first is ref, following are alleles
+                    totalDepth = Integer.parseInt(formatData[2]);
+                    break;
+            }
+        }
+        v.setGenicStatus( isGenic(mapKey,v.getChromosome(),(int)v.getStartPos()) ? "GENIC":"INTERGENIC"  );
+        v.setMapKey(mapKey);
+        v.setSpeciesTypeKey(3);
+        List<VariantMapData> dbVars = dao.getVariant(v);
+        List<VariantMapData> newVars = new ArrayList<>();
+        if (needCopy){
+            String[] varNucs = v.getVariantNucleotide().split(",");
+
+            int varCnt = varNucs.length;
+            List<VariantMapData> variantCopies = new ArrayList<>();
+            for (int i = 0; i < varCnt; i++){
+                VariantMapData copy = new VariantMapData();
+                copy.setChromosome(v.getChromosome());
+                copy.setRsId(v.getRsId());
+                copy.setReferenceNucleotide(v.getReferenceNucleotide());
+                copy.setStartPos(v.getStartPos());
+                if (varNucs[i].equals("*")){
+                    copy.setVariantNucleotide(null);
+                    copy.setEndPos(copy.getStartPos() + copy.getReferenceNucleotide().length());
+                    copy.setVariantType("del");
+                }
+                else {
+                    String var = varNucs[i];
+                    if (copy.getReferenceNucleotide().length() > var.length() && var.length() == 1) {
+                        // deletion
+                        copy.setPaddingBase(var);
+                        copy.setVariantNucleotide(null);
+                        String ref = copy.getReferenceNucleotide().substring(1);
+                        copy.setReferenceNucleotide(ref);
+                        copy.setVariantType("del");
+                    } else if (var.length() > copy.getReferenceNucleotide().length() && copy.getReferenceNucleotide().length() == 1) {
+                        // insertion
+                        copy.setPaddingBase(v.getReferenceNucleotide());
+                        copy.setReferenceNucleotide(null);
+                        var = var.substring(1);
+                        copy.setVariantNucleotide(var);
+                        copy.setVariantType("ins");
+                    } else {
+                        copy.setVariantNucleotide(varNucs[i]);
+                        if (copy.getReferenceNucleotide().length() == copy.getVariantNucleotide().length()) {
+                            copy.setEndPos(copy.getStartPos() + 1);
+                            if (copy.getReferenceNucleotide().length() > 1)
+                                copy.setVariantType("MNV");
+                            else
+                                copy.setVariantType("snp");
+                        } else if (copy.getReferenceNucleotide().length() > copy.getVariantNucleotide().length()) {
+
+                            copy.setEndPos(copy.getStartPos() + copy.getReferenceNucleotide().length());
+                            copy.setVariantType("del");
+                        } else {
+                            copy.setEndPos(copy.getStartPos() + 1);
+                            copy.setVariantType("ins");
+                        }
+                    }
+                }
+                copy.setMapKey(mapKey);
+                copy.setGenicStatus(v.getGenicStatus());
+                copy.setSpeciesTypeKey(3);
+                variantCopies.add(copy);
+                boolean exist = false;
+                for (VariantMapData dbVar : dbVars) {
+                    if (Utils.stringsAreEqual(copy.getReferenceNucleotide(),dbVar.getReferenceNucleotide() ) && Utils.stringsAreEqual(copy.getVariantNucleotide(), dbVar.getVariantNucleotide()) ){
+                        exist = true;
+                        VariantSampleDetail dbSam = dao.getVariantSampleDetail((int)dbVar.getId(),s.getId());
+                        if (dbSam==null){
+                            VariantSampleDetail newSample = new VariantSampleDetail();
+                            newSample.setId(dbVar.getId());
+                            newSample.setSampleId(s.getId());
+                            newSample.setDepth(totalDepth);
+                            int varFreq = Integer.parseInt(depths[i+1]);
+                            newSample.setVariantFrequency(varFreq);
+                            zygosity.computeZygosityStatus(newSample.getVariantFrequency(),newSample.getDepth(),s.getGender(),dbVar, newSample);
+                        }
+                    }
+                }// end check with database vars
+                if (!exist) {
+//                    RgdId r = dao.createRgdId(RgdId.OBJECT_KEY_VARIANTS, "ACTIVE", "created by HRDP Load Pipeline", mapKey);
+//                    var.setId(r.getRgdId());
+                    // create sample
+                    newVars.add(copy);
+                }
+
+            }
+
+            vars.addAll(newVars);
+        }
+        else {
+            // check if variant exists, if no generate rgdId
+            // check if sample exists if variant exists
+            //RgdId r = dao.createRgdId(RgdId.OBJECT_KEY_VARIANTS, "ACTIVE", "created by HRDP Load Pipeline", mapKey);
+            vars.add(v);
+        }
+        return vars;
+    }
+
     Integer getStrainRgdId(String sampleName) throws Exception {
-        StrainDAO sdao = new StrainDAO();
         int strainStop = sampleName.indexOf('(')-1;
         String strainName = sampleName.substring(0,strainStop);
-        return sdao.getStrainRgdIdByTaglessStrainSymbol(strainName);
+        return dao.getStrainRgdIdByTaglessStrainSymbol(strainName);
     }
+
+    private BufferedReader openFile(String fileName) throws IOException {
+
+        String encoding = "UTF-8"; // default encoding
+
+        InputStream is;
+        if( fileName.endsWith(".gz") ) {
+            is = new GZIPInputStream(new FileInputStream(fileName));
+        } else {
+            is = new FileInputStream(fileName);
+        }
+
+        BufferedReader reader = new BufferedReader(new InputStreamReader(is, encoding));
+        return reader;
+    }
+
+    boolean isGenic(int mapKey, String chr, int pos) throws Exception {
+
+        GeneCache geneCache = geneCacheMap.get(chr);
+        if( geneCache==null ) {
+            geneCache = new GeneCache();
+            geneCacheMap.put(chr, geneCache);
+            geneCache.loadCache(mapKey, chr, DataSourceFactory.getInstance().getDataSource());
+        }
+        List<Integer> geneRgdIds = geneCache.getGeneRgdIds(pos);
+        return !geneRgdIds.isEmpty();
+    }
+    Map<String, GeneCache> geneCacheMap;
+
     public void setVersion(String version) {
         this.version = version;
     }
@@ -127,5 +381,13 @@ public class HrdpVariants {
 
     public int getSampleIdStart() {
         return sampleIdStart;
+    }
+
+    public void setInputDir(String inputDir) {
+        this.inputDir = inputDir;
+    }
+
+    public String getInputDir(){
+        return inputDir;
     }
 }
