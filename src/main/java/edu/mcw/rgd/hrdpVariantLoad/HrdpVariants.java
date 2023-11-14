@@ -218,7 +218,7 @@ public class HrdpVariants {
                                 if (v.getReferenceNucleotide().length() == v.getVariantNucleotide().length()) {
                                     v.setEndPos(v.getStartPos() + 1);
                                     if (v.getReferenceNucleotide().length() > 1)
-                                        v.setVariantType("MNV");
+                                        v.setVariantType("mnv");
                                     else
                                         v.setVariantType("snp");
                                 } else if (v.getReferenceNucleotide().length() > v.getVariantNucleotide().length()) {
@@ -290,7 +290,7 @@ public class HrdpVariants {
                         if (copy.getReferenceNucleotide().length() == copy.getVariantNucleotide().length()) {
                             copy.setEndPos(copy.getStartPos() + 1);
                             if (copy.getReferenceNucleotide().length() > 1)
-                                copy.setVariantType("MNV");
+                                copy.setVariantType("mnv");
                             else
                                 copy.setVariantType("snp");
                         } else if (copy.getReferenceNucleotide().length() > copy.getVariantNucleotide().length()) {
