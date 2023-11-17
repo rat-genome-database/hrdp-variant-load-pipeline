@@ -4,7 +4,7 @@
         <property name="version" value="HRDPVariant Loader -- ver. 1.0.1 -- Nov 14, 2023"/>
         <property name="sampleIdStart" value="3109"/>
 <!--        <property name="inputDir" value="C:/Github/hrdp-variant-load-pipeline/src/main/dist/data/HRDP/"/>-->
-        <property name="inputDir" value="~/pipelines/hrdp-variant-load-pipeline/data"/>
+        <property name="inputDir" value="/home/rgddata/pipelines/hrdp-variant-load-pipeline/data"/>
     </bean>
 
 </beans>
