@@ -95,7 +95,8 @@ public class HrdpVariants {
             String[] data = lineData.split("\t");
 
             List<VariantMapData> vars = parseLineData(data, samples, sample);
-            variants.addAll(vars);
+            if (!vars.isEmpty())
+                variants.addAll(vars);
 
         } // end of file read
 
@@ -245,6 +246,11 @@ public class HrdpVariants {
                     String[] formatData = data[i].split(":");
                     depths = formatData[1].split(","); // first is ref, following are alleles
                     totalDepth = Integer.parseInt(formatData[2]);
+                    if (totalDepth==0)
+                    {
+                        logger.info(Arrays.toString(data));
+                        return new ArrayList<>(0);
+                    }
                     break;
             }
         }
@@ -320,14 +326,11 @@ public class HrdpVariants {
                             int varFreq = Integer.parseInt(depths[i+1]);
                             newSample.setVariantFrequency(varFreq);
                             zygosity.computeZygosityStatus(newSample.getVariantFrequency(),newSample.getDepth(),s.getGender(),dbVar, newSample);
-                            try {
-                                int zygPercentRead = varFreq / newSample.getDepth();
-                                newSample.setZygosityPercentRead(zygPercentRead);
-                            }
-                            catch (Exception ignore){
-                                newSample.setZygosityPercentRead(0);
-                            }
+
+                            int zygPercentRead = varFreq / newSample.getDepth();
+                            newSample.setZygosityPercentRead(zygPercentRead);
                             samples.add(newSample);
+
                         }
                     }
                 }// end check with database vars
@@ -343,15 +346,12 @@ public class HrdpVariants {
                     int varFreq = Integer.parseInt(depths[i+1]);
                     newSample.setVariantFrequency(varFreq);
                     zygosity.computeZygosityStatus(newSample.getVariantFrequency(), newSample.getDepth(), s.getGender(), v, newSample);
-                    try {
-                        int zygPercentRead = varFreq / newSample.getDepth();
-                        newSample.setZygosityPercentRead(zygPercentRead);
-                    }
-                    catch (Exception ignore){
-                        newSample.setZygosityPercentRead(0);
-                    }
+
+                    int zygPercentRead = varFreq / newSample.getDepth();
+                    newSample.setZygosityPercentRead(zygPercentRead);
                     samples.add(newSample);
                     newVars.add(copy);
+
                 }
 
             }
@@ -374,38 +374,32 @@ public class HrdpVariants {
                         int varFreq = Integer.parseInt(depths[1]);
                         newSample.setVariantFrequency(varFreq);
                         zygosity.computeZygosityStatus(newSample.getVariantFrequency(),newSample.getDepth(),s.getGender(),dbVar, newSample);
-                        try {
-                            int zygPercentRead = varFreq / newSample.getDepth();
-                            newSample.setZygosityPercentRead(zygPercentRead);
-                        }
-                        catch (Exception ignore){
-                            newSample.setZygosityPercentRead(0);
-                        }
+
+                        int zygPercentRead = varFreq / newSample.getDepth();
+                        newSample.setZygosityPercentRead(zygPercentRead);
                         samples.add(newSample);
+
                     }
                 }
             }
             if (!exist) {
+
                     RgdId r = dao.createRgdId(RgdId.OBJECT_KEY_VARIANTS, "ACTIVE", "created by HRDP Load Pipeline", mapKey);
                     v.setId(r.getRgdId());
                 // create sample
-                VariantSampleDetail newSample = new VariantSampleDetail();
-                newSample.setId(v.getId());
-                newSample.setSampleId(s.getId());
-                newSample.setDepth(totalDepth);
-                int varFreq = Integer.parseInt(depths[1]);
-                newSample.setVariantFrequency(varFreq);
-                zygosity.computeZygosityStatus(newSample.getVariantFrequency(), newSample.getDepth(), s.getGender(), v, newSample);
-                try {
+                    VariantSampleDetail newSample = new VariantSampleDetail();
+                    newSample.setId(v.getId());
+                    newSample.setSampleId(s.getId());
+                    newSample.setDepth(totalDepth);
+                    int varFreq = Integer.parseInt(depths[1]);
+                    newSample.setVariantFrequency(varFreq);
+                    zygosity.computeZygosityStatus(newSample.getVariantFrequency(), newSample.getDepth(), s.getGender(), v, newSample);
+
                     int zygPercentRead = varFreq / newSample.getDepth();
                     newSample.setZygosityPercentRead(zygPercentRead);
-                }
-                catch (Exception ignore){
-                    newSample.setZygosityPercentRead(0);
-                }
+                    samples.add(newSample);
+                    vars.add(v);
 
-                samples.add(newSample);
-                vars.add(v);
             }
 //            vars.add(v);
         }
