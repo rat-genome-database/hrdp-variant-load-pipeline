@@ -92,9 +92,9 @@ public class HrdpVariants {
         while ((lineData = br.readLine()) != null){
             if (lineData.startsWith("#"))
                 continue;
-            String[] data = lineData.split("\t");
 
-            List<VariantMapData> vars = parseLineData(data, samples, sample);
+
+            List<VariantMapData> vars = parseLineData(lineData, samples, sample);
             if (!vars.isEmpty())
                 variants.addAll(vars);
 
@@ -147,13 +147,14 @@ public class HrdpVariants {
         return strain;
     }
 
-    List<VariantMapData> parseLineData(String[] data, List<VariantSampleDetail> samples, Sample s) throws Exception{
+    List<VariantMapData> parseLineData(String lineData, List<VariantSampleDetail> samples, Sample s) throws Exception{
         // CHROM  POS     ID      REF     ALT     QUAL    FILTER  INFO    FORMAT  ACI_EurMcwi_2019NG
         VariantMapData v = new VariantMapData();
         VariantSampleDetail vs = new VariantSampleDetail();
         List<VariantMapData> vars = new ArrayList<>();
         boolean needCopy = false;
         Integer totalDepth = null;
+        String[] data = lineData.split("\t");
         String[] depths = new String[0];
         // first check if ref or alt has a ','
         // if yes, make a copy of
@@ -248,7 +249,7 @@ public class HrdpVariants {
                     totalDepth = Integer.parseInt(formatData[2]);
                     if (totalDepth==0)
                     {
-                        logger.info(Arrays.toString(data));
+                        logger.info(lineData);
                         return new ArrayList<>(0);
                     }
                     break;
