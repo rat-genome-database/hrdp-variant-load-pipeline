@@ -1,2 +1,5 @@
+November 20, 2023
+improved logging to catch variants with total depth of 0
+
 November 14, 2023
 created and edited to load hrdp variants
