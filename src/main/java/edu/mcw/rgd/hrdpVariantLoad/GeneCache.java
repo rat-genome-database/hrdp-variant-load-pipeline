@@ -71,6 +71,10 @@ public class GeneCache {
             GeneCacheEntry entry = entries.get(i);
             if(key.startPos >= entry.startPos && key.stopPos <= entry.stopPos)
                 results.add(entry.rgdId);
+            if (key.startPos <= entry.startPos && key.stopPos >= entry.startPos)
+                results.add(entry.rgdId);
+            if (key.startPos <= entry.stopPos && key.stopPos >= entry.stopPos)
+                results.add(entry.rgdId);
         }
  /*       results.add(entries.get(i).rgdId);
         // look for possible other hits to the left of the hit index
