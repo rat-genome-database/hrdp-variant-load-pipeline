@@ -25,6 +25,7 @@ public class HrdpVariants {
     private int mapKey = 0;
     private final DAO dao = new DAO();
     private SimpleDateFormat sdt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    private int zeroDepthCnt = 0;
     public void main(String[] args) throws Exception {
 
         logger.info(getVersion());
@@ -56,7 +57,7 @@ public class HrdpVariants {
     }
 
     void parse(File file) throws Exception{
-
+        zeroDepthCnt = 0;
         // create samples and insert them
         // parse through files and insert variants
         String name = getStrainName(file.getName());
@@ -99,7 +100,9 @@ public class HrdpVariants {
                 variants.addAll(vars);
 
         } // end of file read
-
+        if (zeroDepthCnt!=0){
+            logger.info("\t\t\tVariants with 0 depth being ignored: "+zeroDepthCnt);
+        }
         if (!variants.isEmpty()){
             logger.info("\t\tVariants being entered: " + variants.size());
             dao.insertVariants(variants);
@@ -252,7 +255,8 @@ public class HrdpVariants {
                     totalDepth = Integer.parseInt(formatData[2]);
                     if (totalDepth==0)
                     {
-                        logger.info(lineData);
+                        zeroDepthCnt++;
+//                        logger.info(lineData);
                         return new ArrayList<>(0);
                     }
                     break;
