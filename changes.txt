@@ -1,3 +1,6 @@
+January 11, 2024
+updated to ignore variants with depth 0
+
 November 20, 2023
 improved logging to catch variants with total depth of 0
 
