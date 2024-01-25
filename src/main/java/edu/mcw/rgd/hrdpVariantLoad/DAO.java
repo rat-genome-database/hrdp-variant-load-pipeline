@@ -7,7 +7,6 @@ import edu.mcw.rgd.dao.impl.StrainDAO;
 import edu.mcw.rgd.dao.impl.variants.VariantDAO;
 import edu.mcw.rgd.dao.spring.variants.VariantMapQuery;
 import edu.mcw.rgd.dao.spring.variants.VariantSampleQuery;
-import edu.mcw.rgd.datamodel.Eva;
 import edu.mcw.rgd.datamodel.RgdId;
 import edu.mcw.rgd.datamodel.Sample;
 import edu.mcw.rgd.datamodel.SpeciesType;
@@ -18,6 +17,7 @@ import org.springframework.jdbc.object.BatchSqlUpdate;
 
 import javax.sql.DataSource;
 import java.sql.Types;
+import java.util.Collection;
 import java.util.List;
 
 public class DAO {
@@ -119,4 +119,16 @@ public class DAO {
         q.declareParameter(new SqlParameter(Types.INTEGER));
         return q.execute(v.getMapKey(), v.getChromosome(), v.getStartPos());
     }
+
+    public void updateVariantEndPosBatch(Collection<VariantMapData> toBeUpdated) throws Exception{
+        BatchSqlUpdate su = new BatchSqlUpdate(this.getVariantDataSource(),
+                "update variant_map_data set END_POS=? where RGD_ID=?",
+                new int[]{Types.INTEGER, Types.INTEGER}, 5000);
+        su.compile();
+        for (VariantMapData v : toBeUpdated){
+            su.update(v.getEndPos(),v.getId());
+        }
+        su.flush();
+    }
+
 }

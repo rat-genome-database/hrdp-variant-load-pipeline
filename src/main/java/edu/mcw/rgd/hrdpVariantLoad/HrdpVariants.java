@@ -89,19 +89,24 @@ public class HrdpVariants {
         BufferedReader br = openFile(file.getAbsolutePath());
         String lineData;
         List<VariantMapData> variants = new ArrayList<>();
+        List<VariantMapData> tobeUpdated = new ArrayList<>();
         List<VariantSampleDetail> samples = new ArrayList<>();
         while ((lineData = br.readLine()) != null){
             if (lineData.startsWith("#"))
                 continue;
 
 
-            List<VariantMapData> vars = parseLineData(lineData, samples, sample);
+            List<VariantMapData> vars = parseLineData(lineData, samples, sample, tobeUpdated);
             if (!vars.isEmpty())
                 variants.addAll(vars);
 
         } // end of file read
         if (zeroDepthCnt!=0){
             logger.info("\t\t\tVariants with 0 depth being ignored: "+zeroDepthCnt);
+        }
+        if (!tobeUpdated.isEmpty()){
+            logger.info("\t\tVariants end pos being updated: "+tobeUpdated.size());
+            dao.updateVariantEndPosBatch(tobeUpdated);
         }
         if (!variants.isEmpty()){
             logger.info("\t\tVariants being entered: " + variants.size());
@@ -150,10 +155,9 @@ public class HrdpVariants {
         return strain;
     }
 
-    List<VariantMapData> parseLineData(String lineData, List<VariantSampleDetail> samples, Sample s) throws Exception{
+    List<VariantMapData> parseLineData(String lineData, List<VariantSampleDetail> samples, Sample s, List<VariantMapData> tobeUpdated) throws Exception{
         // CHROM  POS     ID      REF     ALT     QUAL    FILTER  INFO    FORMAT  ACI_EurMcwi_2019NG
         VariantMapData v = new VariantMapData();
-        VariantSampleDetail vs = new VariantSampleDetail();
         List<VariantMapData> vars = new ArrayList<>();
         boolean needCopy = false;
         Integer totalDepth = null;
@@ -209,6 +213,7 @@ public class HrdpVariants {
                             String var = data[i];
                             if (v.getReferenceNucleotide().length() > var.length() && var.length() == 1) {
                                 // deletion
+                                v.setEndPos(v.getStartPos() + v.getVariantNucleotide().length());
                                 v.setPaddingBase(var);
                                 v.setVariantNucleotide(null);
                                 String ref = v.getReferenceNucleotide().substring(1);
@@ -217,6 +222,7 @@ public class HrdpVariants {
                             } else if (var.length() > v.getReferenceNucleotide().length() && v.getReferenceNucleotide().length() == 1) {
                                 // insertion
                                 v.setPaddingBase(v.getReferenceNucleotide());
+                                v.setEndPos(v.getStartPos()+1);
                                 v.setReferenceNucleotide(null);
                                 var = var.substring(1);
                                 v.setVariantNucleotide(var);
@@ -225,10 +231,14 @@ public class HrdpVariants {
                                 v.setVariantNucleotide(data[i]);
                                 if (v.getReferenceNucleotide().length() == v.getVariantNucleotide().length()) {
                                     v.setEndPos(v.getStartPos() + 1);
-                                    if (v.getReferenceNucleotide().length() > 1)
+                                    if (v.getReferenceNucleotide().length() > 1) {
                                         v.setVariantType("mnv");
-                                    else
+                                        v.setEndPos(v.getStartPos()+v.getVariantNucleotide().length());
+                                    }
+                                    else {
                                         v.setVariantType("snp");
+                                        v.setEndPos(v.getStartPos()+1);
+                                    }
                                 } else if (v.getReferenceNucleotide().length() > v.getVariantNucleotide().length()) {
                                     v.setEndPos(v.getStartPos() + v.getReferenceNucleotide().length());
                                     v.setVariantType("delins");
@@ -288,6 +298,7 @@ public class HrdpVariants {
                     if (copy.getReferenceNucleotide().length() > var.length() && var.length() == 1) {
                         // deletion
                         copy.setPaddingBase(var);
+                        copy.setEndPos(copy.getStartPos() + copy.getVariantNucleotide().length());
                         copy.setVariantNucleotide(null);
                         String ref = copy.getReferenceNucleotide().substring(1);
                         copy.setReferenceNucleotide(ref);
@@ -295,6 +306,7 @@ public class HrdpVariants {
                     } else if (var.length() > copy.getReferenceNucleotide().length() && copy.getReferenceNucleotide().length() == 1) {
                         // insertion
                         copy.setPaddingBase(v.getReferenceNucleotide());
+                        copy.setEndPos(v.getStartPos()+1);
                         copy.setReferenceNucleotide(null);
                         var = var.substring(1);
                         copy.setVariantNucleotide(var);
@@ -303,12 +315,15 @@ public class HrdpVariants {
                         copy.setVariantNucleotide(varNucs[i]);
                         if (copy.getReferenceNucleotide().length() == copy.getVariantNucleotide().length()) {
                             copy.setEndPos(copy.getStartPos() + 1);
-                            if (copy.getReferenceNucleotide().length() > 1)
+                            if (copy.getReferenceNucleotide().length() > 1) {
+                                copy.setEndPos(copy.getStartPos()+copy.getVariantNucleotide().length());
                                 copy.setVariantType("mnv");
-                            else
+                            }
+                            else {
+                                copy.setEndPos(v.getStartPos()+1);
                                 copy.setVariantType("snp");
+                            }
                         } else if (copy.getReferenceNucleotide().length() > copy.getVariantNucleotide().length()) {
-
                             copy.setEndPos(copy.getStartPos() + copy.getReferenceNucleotide().length());
                             copy.setVariantType("delins");
                         } else {
@@ -323,7 +338,8 @@ public class HrdpVariants {
 //                variantCopies.add(copy);
                 boolean exist = false;
                 for (VariantMapData dbVar : dbVars) {
-                    if (Utils.stringsAreEqual(copy.getReferenceNucleotide(),dbVar.getReferenceNucleotide() ) && Utils.stringsAreEqual(copy.getVariantNucleotide(), dbVar.getVariantNucleotide()) ){
+                    if (Utils.stringsAreEqual(copy.getReferenceNucleotide(),dbVar.getReferenceNucleotide() ) && Utils.stringsAreEqual(copy.getVariantNucleotide(), dbVar.getVariantNucleotide())
+                    && copy.getStartPos()==dbVar.getStartPos()){
                         exist = true;
                         VariantSampleDetail dbSam = dao.getVariantSampleDetail((int)dbVar.getId(),s.getId());
                         if (dbSam==null){
@@ -338,7 +354,10 @@ public class HrdpVariants {
                             int zygPercentRead = varFreq / newSample.getDepth();
                             newSample.setZygosityPercentRead(zygPercentRead);
                             samples.add(newSample);
-
+                            if (dbVar.getEndPos()==0 && copy.getEndPos()!=0) {
+                                dbVar.setEndPos(copy.getEndPos());
+                                tobeUpdated.add(dbVar);
+                            }
                         }
                     }
                 }// end check with database vars
@@ -371,7 +390,8 @@ public class HrdpVariants {
             // check if sample exists only if variant exists
             boolean exist = false;
             for (VariantMapData dbVar : dbVars) {
-                if (Utils.stringsAreEqual(v.getReferenceNucleotide(),dbVar.getReferenceNucleotide() ) && Utils.stringsAreEqual(v.getVariantNucleotide(), dbVar.getVariantNucleotide()) ){
+                if (Utils.stringsAreEqual(v.getReferenceNucleotide(),dbVar.getReferenceNucleotide() ) && Utils.stringsAreEqual(v.getVariantNucleotide(), dbVar.getVariantNucleotide())
+                && v.getStartPos()==dbVar.getStartPos()){
                     exist = true;
                     VariantSampleDetail dbSam = dao.getVariantSampleDetail((int)dbVar.getId(),s.getId());
                     if (dbSam==null){
@@ -387,6 +407,10 @@ public class HrdpVariants {
                         newSample.setZygosityPercentRead(zygPercentRead);
                         samples.add(newSample);
 
+                    }
+                    if (dbVar.getEndPos()==0 && v.getEndPos()!=0) {
+                        dbVar.setEndPos(v.getEndPos());
+                        tobeUpdated.add(dbVar);
                     }
                 }
             }
