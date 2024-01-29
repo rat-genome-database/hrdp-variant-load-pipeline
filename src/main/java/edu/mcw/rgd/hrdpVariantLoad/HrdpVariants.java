@@ -81,7 +81,7 @@ public class HrdpVariants {
             sample.setPatientId(372); // default is rat 7.2 patient id, 372
             sample.setMapKey(mapKey);
             sample.setGrantNumber("R24OD022617");
-//            dao.insertSample(sample);
+            dao.insertSample(sample);
         }
 
         // parse file and insert/add samples to variants
@@ -194,7 +194,7 @@ public class HrdpVariants {
                     }
                     break;
                 case 4: // alt
-                    // get end position, insertion - length of alt/var, deletion/SNP - start+1
+                    // get end position, insertion - start+1, deletion/SNP - length of alt/var
                     // also set padding base if possible
                     // make sure to copy variant if there is a ','
                     // '*' represents deletion
@@ -213,7 +213,7 @@ public class HrdpVariants {
                             String var = data[i];
                             if (v.getReferenceNucleotide().length() > var.length() && var.length() == 1) {
                                 // deletion
-                                v.setEndPos(v.getStartPos() + v.getVariantNucleotide().length());
+                                v.setEndPos(v.getStartPos() + v.getReferenceNucleotide().length());
                                 v.setPaddingBase(var);
                                 v.setVariantNucleotide(null);
                                 String ref = v.getReferenceNucleotide().substring(1);
@@ -233,7 +233,7 @@ public class HrdpVariants {
                                     v.setEndPos(v.getStartPos() + 1);
                                     if (v.getReferenceNucleotide().length() > 1) {
                                         v.setVariantType("mnv");
-                                        v.setEndPos(v.getStartPos()+v.getVariantNucleotide().length());
+                                        v.setEndPos(v.getStartPos()+v.getReferenceNucleotide().length());
                                     }
                                     else {
                                         v.setVariantType("snp");
@@ -316,7 +316,7 @@ public class HrdpVariants {
                         if (copy.getReferenceNucleotide().length() == copy.getVariantNucleotide().length()) {
                             copy.setEndPos(copy.getStartPos() + 1);
                             if (copy.getReferenceNucleotide().length() > 1) {
-                                copy.setEndPos(copy.getStartPos()+copy.getVariantNucleotide().length());
+                                copy.setEndPos(copy.getStartPos()+copy.getReferenceNucleotide().length());
                                 copy.setVariantType("mnv");
                             }
                             else {
