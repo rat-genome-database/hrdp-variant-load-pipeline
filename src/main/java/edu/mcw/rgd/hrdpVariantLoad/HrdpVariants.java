@@ -354,7 +354,7 @@ public class HrdpVariants {
                             int zygPercentRead = varFreq / newSample.getDepth();
                             newSample.setZygosityPercentRead(zygPercentRead);
                             samples.add(newSample);
-                            if (dbVar.getEndPos()==0 && copy.getEndPos()!=0) {
+                            if (dbVar.getEndPos() != copy.getEndPos()) {
                                 dbVar.setEndPos(copy.getEndPos());
                                 tobeUpdated.add(dbVar);
                             }
@@ -408,7 +408,7 @@ public class HrdpVariants {
                         samples.add(newSample);
 
                     }
-                    if (dbVar.getEndPos()==0 && v.getEndPos()!=0) {
+                    if (dbVar.getEndPos() != v.getEndPos()) {
                         dbVar.setEndPos(v.getEndPos());
                         tobeUpdated.add(dbVar);
                     }
