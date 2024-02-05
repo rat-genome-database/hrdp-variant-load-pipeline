@@ -213,11 +213,11 @@ public class HrdpVariants {
                             String var = data[i];
                             if (v.getReferenceNucleotide().length() > var.length() && var.length() == 1) {
                                 // deletion
-                                v.setEndPos(v.getStartPos() + v.getReferenceNucleotide().length());
                                 v.setPaddingBase(var);
                                 v.setVariantNucleotide(null);
                                 String ref = v.getReferenceNucleotide().substring(1);
                                 v.setReferenceNucleotide(ref);
+                                v.setEndPos(v.getStartPos() + v.getReferenceNucleotide().length());
                                 v.setVariantType("del");
                             } else if (var.length() > v.getReferenceNucleotide().length() && v.getReferenceNucleotide().length() == 1) {
                                 // insertion
@@ -298,10 +298,10 @@ public class HrdpVariants {
                     if (copy.getReferenceNucleotide().length() > var.length() && var.length() == 1) {
                         // deletion
                         copy.setPaddingBase(var);
-                        copy.setEndPos(copy.getStartPos() + copy.getVariantNucleotide().length());
                         copy.setVariantNucleotide(null);
                         String ref = copy.getReferenceNucleotide().substring(1);
                         copy.setReferenceNucleotide(ref);
+                        copy.setEndPos(copy.getStartPos() + copy.getReferenceNucleotide().length());
                         copy.setVariantType("del");
                     } else if (var.length() > copy.getReferenceNucleotide().length() && copy.getReferenceNucleotide().length() == 1) {
                         // insertion
@@ -354,7 +354,7 @@ public class HrdpVariants {
                             int zygPercentRead = varFreq / newSample.getDepth();
                             newSample.setZygosityPercentRead(zygPercentRead);
                             samples.add(newSample);
-                            if (dbVar.getEndPos() != copy.getEndPos()) {
+                            if (dbVar.getEndPos() != copy.getEndPos() && copy.getEndPos()!=0) {
                                 dbVar.setEndPos(copy.getEndPos());
                                 tobeUpdated.add(dbVar);
                             }
@@ -408,7 +408,7 @@ public class HrdpVariants {
                         samples.add(newSample);
 
                     }
-                    if (dbVar.getEndPos() != v.getEndPos()) {
+                    if (dbVar.getEndPos() != v.getEndPos() && v.getEndPos()!=0) {
                         dbVar.setEndPos(v.getEndPos());
                         tobeUpdated.add(dbVar);
                     }
