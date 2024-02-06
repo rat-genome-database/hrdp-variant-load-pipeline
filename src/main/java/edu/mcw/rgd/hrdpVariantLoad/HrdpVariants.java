@@ -159,7 +159,8 @@ public class HrdpVariants {
         // CHROM  POS     ID      REF     ALT     QUAL    FILTER  INFO    FORMAT  ACI_EurMcwi_2019NG
         VariantMapData v = new VariantMapData();
         List<VariantMapData> vars = new ArrayList<>();
-        boolean needCopy = false;
+        boolean needCopyVar = false;
+        boolean needCopyRef = false;
         Integer totalDepth = null;
         String[] data = lineData.split("\t");
         String[] depths = new String[0];
@@ -186,7 +187,7 @@ public class HrdpVariants {
                     break;
                 case 3: // ref
                     if (data[i].contains(",")) {
-                        needCopy = true;
+                        needCopyRef = true;
                         v.setReferenceNucleotide(data[i]); // change in alt for padding base if it exists
                     }
                     else {
@@ -199,7 +200,7 @@ public class HrdpVariants {
                     // make sure to copy variant if there is a ','
                     // '*' represents deletion
                     if (data[i].contains(",")) {
-                        needCopy = true;
+                        needCopyVar = true;
                         v.setVariantNucleotide(data[i]);
                     }
                     else {
@@ -277,24 +278,43 @@ public class HrdpVariants {
         v.setSpeciesTypeKey(3);
         List<VariantMapData> dbVars = dao.getVariant(v);
         List<VariantMapData> newVars = new ArrayList<>();
-        if (needCopy){
-            String[] varNucs = v.getVariantNucleotide().split(",");
+        if (needCopyRef || needCopyVar){
+            String[] refNucs = {};
+            String[] varNucs = {};
+            int cnt;
+            if (needCopyRef) {
+                refNucs = v.getReferenceNucleotide().split(",");
+                cnt = refNucs.length;
+            }
+            else {
+                varNucs = v.getVariantNucleotide().split(",");
+                cnt = varNucs.length;
+            }
 
-            int varCnt = varNucs.length;
+
 //            List<VariantMapData> variantCopies = new ArrayList<>();
-            for (int i = 0; i < varCnt; i++){
+            for (int i = 0; i < cnt; i++){
                 VariantMapData copy = new VariantMapData();
                 copy.setChromosome(v.getChromosome());
                 copy.setRsId(v.getRsId());
-                copy.setReferenceNucleotide(v.getReferenceNucleotide());
+
                 copy.setStartPos(v.getStartPos());
-                if (varNucs[i].equals("*")){
+                String var = null;
+                if (needCopyRef){
+                    copy.setReferenceNucleotide(refNucs[i]);
+                    var = v.getVariantNucleotide();
+                }
+                else{
+                    copy.setReferenceNucleotide(v.getReferenceNucleotide());
+                    var = varNucs[i];
+                }
+                if (var.equals("*")){
                     copy.setVariantNucleotide(null);
                     copy.setEndPos(copy.getStartPos() + copy.getReferenceNucleotide().length());
                     copy.setVariantType("del");
                 }
                 else {
-                    String var = varNucs[i];
+
                     if (copy.getReferenceNucleotide().length() > var.length() && var.length() == 1) {
                         // deletion
                         copy.setPaddingBase(var);
@@ -354,10 +374,11 @@ public class HrdpVariants {
                             int zygPercentRead = varFreq / newSample.getDepth();
                             newSample.setZygosityPercentRead(zygPercentRead);
                             samples.add(newSample);
-                            if (dbVar.getEndPos() != copy.getEndPos() && copy.getEndPos()!=0) {
-                                dbVar.setEndPos(copy.getEndPos());
-                                tobeUpdated.add(dbVar);
-                            }
+
+                        }
+                        if (dbVar.getEndPos() != copy.getEndPos() && copy.getEndPos()!=0) {
+                            dbVar.setEndPos(copy.getEndPos());
+                            tobeUpdated.add(dbVar);
                         }
                     }
                 }// end check with database vars
