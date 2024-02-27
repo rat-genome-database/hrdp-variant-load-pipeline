@@ -136,6 +136,10 @@ public class HrdpVariants {
 
     String getStrainName(String fileName) throws Exception{
         String strain = fileName;
+        if (strain.endsWith("_PASS"))
+        {
+            strain = strain.replace("_PASS","");
+        }
         int lastUnderScore = strain.lastIndexOf('_');
         strain = strain.substring(0,lastUnderScore);
         lastUnderScore = strain.lastIndexOf('_');
