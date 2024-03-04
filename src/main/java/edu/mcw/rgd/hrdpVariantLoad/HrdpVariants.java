@@ -136,7 +136,7 @@ public class HrdpVariants {
 
     String getStrainName(String fileName) throws Exception{
         String strain = fileName;
-        if (strain.endsWith("_PASS"))
+        if (strain.contains("_PASS"))
         {
             strain = strain.replace("_PASS","");
         }

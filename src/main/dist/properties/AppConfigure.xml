@@ -3,7 +3,7 @@
     <bean id="hrdpVariants" class="edu.mcw.rgd.hrdpVariantLoad.HrdpVariants">
         <property name="version" value="HRDPVariant Loader -- ver. 1.0.3 -- Jan 9, 2024"/>
         <property name="sampleIdStart" value="3109"/>
-<!--        <property name="inputDir" value="C:/Github/hrdp-variant-load-pipeline/src/main/dist/data/HRDP/INDELs"/>-->
+<!--        <property name="inputDir" value="C:/Github/hrdp-variant-load-pipeline/src/main/dist/data/>-->
         <property name="inputDir" value="/home/rgddata/pipelines/hrdp-variant-load-pipeline/data/indels/INDELs"/>
     </bean>
 
