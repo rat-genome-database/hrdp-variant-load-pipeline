@@ -174,7 +174,7 @@ public class HrdpVariants {
             switch (i){
                 case 0: // chrom
                     // chrM is for MT
-                    if (data[i].contains("unplaced") || data[i].contains("unloc") || data[i].contains("contig")){
+                    if (data[i].contains("unplaced") || data[i].contains("unloc") || data[i].contains("contig") || data[i].contains("scaffold")){
                         return new ArrayList<>(0);
                     }
                     v.setChromosome(data[i].replace("chr",""));
