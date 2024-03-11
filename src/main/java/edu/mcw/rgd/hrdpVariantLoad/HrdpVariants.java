@@ -277,7 +277,7 @@ public class HrdpVariants {
                     break;
             }
         }
-        v.setGenicStatus( isGenic(mapKey,v.getChromosome(),(int)v.getStartPos()) ? "GENIC":"INTERGENIC"  );
+        v.setGenicStatus( isGenic(v) ? "GENIC":"INTERGENIC"  );
         v.setMapKey(mapKey);
         v.setSpeciesTypeKey(3);
         List<VariantMapData> dbVars = dao.getVariant(v);
@@ -484,15 +484,15 @@ public class HrdpVariants {
         return reader;
     }
 
-    boolean isGenic(int mapKey, String chr, int pos) throws Exception {
+    boolean isGenic(VariantMapData v) throws Exception {
 
-        GeneCache geneCache = geneCacheMap.get(chr);
+        GeneCache geneCache = geneCacheMap.get(v.getChromosome());
         if( geneCache==null ) {
             geneCache = new GeneCache();
-            geneCacheMap.put(chr, geneCache);
-            geneCache.loadCache(mapKey, chr, DataSourceFactory.getInstance().getDataSource());
+            geneCacheMap.put(v.getChromosome(), geneCache);
+            geneCache.loadCache(mapKey, v.getChromosome(), DataSourceFactory.getInstance().getDataSource());
         }
-        List<Integer> geneRgdIds = geneCache.getGeneRgdIds(pos);
+        List<Integer> geneRgdIds = geneCache.getGeneRgdIds((int)v.getStartPos(), (int)v.getEndPos());
         return !geneRgdIds.isEmpty();
     }
     Map<String, GeneCache> geneCacheMap;
