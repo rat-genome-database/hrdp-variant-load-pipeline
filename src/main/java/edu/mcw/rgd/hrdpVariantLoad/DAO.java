@@ -51,14 +51,11 @@ public class DAO {
     }
 
     public VariantSampleDetail getVariantSampleDetail(int rgdId, int sampleId) throws Exception{
-        String sql = "SELECT * FROM variant_sample_detail  WHERE rgd_id=? AND sample_id=?";
-        VariantSampleQuery q = new VariantSampleQuery(getVariantDataSource(), sql);
-        q.declareParameter(new SqlParameter(Types.INTEGER));
-        q.declareParameter(new SqlParameter(Types.INTEGER));
-        List<VariantSampleDetail> samples = q.execute(rgdId, sampleId);
-        if (samples.isEmpty())
-            return null;
-        return samples.get(0);
+        return vdao.getVariantSampleDetailByRGDIdSampleId(rgdId,sampleId);
+    }
+
+    public int getVariantSampleDetailCount(int rgdId, int sampleId) throws Exception{
+        return vdao.getVariantSampleDetailCount(rgdId, sampleId);
     }
 
     public int insertVariantSample(List<VariantSampleDetail> sampleData) throws Exception {

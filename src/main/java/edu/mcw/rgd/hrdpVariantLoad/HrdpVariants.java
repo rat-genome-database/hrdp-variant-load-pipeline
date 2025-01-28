@@ -212,26 +212,45 @@ public class HrdpVariants {
                         if (data[i].equals("*")) {
                             v.setVariantNucleotide(null);
                             v.setEndPos(v.getStartPos() + v.getReferenceNucleotide().length());
-                            v.setVariantType("del");
+                            v.setVariantType("deletion");
                         }
                         else {
                             String var = data[i];
+                            v.setVariantNucleotide(var);
                             if (v.getReferenceNucleotide().length() > var.length() && var.length() == 1) {
                                 // deletion
                                 v.setPaddingBase(var);
+                                v.setStartPos(v.getStartPos()+1);
                                 v.setVariantNucleotide(null);
                                 String ref = v.getReferenceNucleotide().substring(1);
                                 v.setReferenceNucleotide(ref);
                                 v.setEndPos(v.getStartPos() + v.getReferenceNucleotide().length());
-                                v.setVariantType("del");
+                                v.setVariantType("deletion");
+                            } else if (v.getReferenceNucleotide().length() > var.length() && v.getReferenceNucleotide().startsWith(var)){
+                                v.setPaddingBase(var);
+                                v.setStartPos(v.getStartPos()+var.length());
+                                v.setVariantNucleotide(null);
+                                String ref = v.getReferenceNucleotide().replaceFirst(var, "");
+                                v.setReferenceNucleotide(ref);
+                                v.setEndPos(v.getStartPos()+ref.length());
+                                v.setVariantType("deletion");
                             } else if (var.length() > v.getReferenceNucleotide().length() && v.getReferenceNucleotide().length() == 1) {
                                 // insertion
                                 v.setPaddingBase(v.getReferenceNucleotide());
+                                v.setStartPos(v.getStartPos()+1);
                                 v.setEndPos(v.getStartPos()+1);
                                 v.setReferenceNucleotide(null);
                                 var = var.substring(1);
                                 v.setVariantNucleotide(var);
-                                v.setVariantType("ins");
+                                v.setVariantType("insertion");
+                            } else if (var.length() > v.getReferenceNucleotide().length() && var.startsWith(v.getReferenceNucleotide())){
+                                v.setPaddingBase(v.getReferenceNucleotide());
+                                v.setStartPos(v.getStartPos()+v.getReferenceNucleotide().length());
+                                v.setEndPos(v.getStartPos()+1);
+                                v.setReferenceNucleotide(null);
+                                var = var.replaceFirst(v.getPaddingBase(),"");
+                                v.setVariantNucleotide(var);
+                                v.setVariantType("insertion");
                             } else {
                                 v.setVariantNucleotide(data[i]);
                                 if (v.getReferenceNucleotide().length() == v.getVariantNucleotide().length()) {
@@ -265,6 +284,7 @@ public class HrdpVariants {
                     break;
                 case 9: // actual format data
                     // 0/1 :ref 32,allele 9: total depth 41 :99:130,0,872
+
                     String[] formatData = data[i].split(":");
                     depths = formatData[1].split(","); // first is ref, following are alleles
                     totalDepth = Integer.parseInt(formatData[2]);
@@ -299,6 +319,9 @@ public class HrdpVariants {
 //            List<VariantMapData> variantCopies = new ArrayList<>();
             for (int i = 0; i < cnt; i++){
                 VariantMapData copy = new VariantMapData();
+                int varFreq = Integer.parseInt(depths[i+1]);
+                if (varFreq==0)
+                    continue;
                 copy.setChromosome(v.getChromosome());
                 copy.setRsId(v.getRsId());
 
@@ -315,7 +338,7 @@ public class HrdpVariants {
                 if (var.equals("*")){
                     copy.setVariantNucleotide(null);
                     copy.setEndPos(copy.getStartPos() + copy.getReferenceNucleotide().length());
-                    copy.setVariantType("del");
+                    copy.setVariantType("deletion");
                 }
                 else {
 
@@ -326,7 +349,15 @@ public class HrdpVariants {
                         String ref = copy.getReferenceNucleotide().substring(1);
                         copy.setReferenceNucleotide(ref);
                         copy.setEndPos(copy.getStartPos() + copy.getReferenceNucleotide().length());
-                        copy.setVariantType("del");
+                        copy.setVariantType("deletion");
+                    } else if (v.getReferenceNucleotide().length() > var.length() && v.getReferenceNucleotide().startsWith(var)){
+                        copy.setPaddingBase(var);
+                        copy.setStartPos(v.getStartPos()+var.length());
+                        copy.setVariantNucleotide(null);
+                        String ref = v.getReferenceNucleotide().replaceFirst(var, "");
+                        copy.setReferenceNucleotide(ref);
+                        copy.setEndPos(v.getStartPos()+ref.length());
+                        copy.setVariantType("deletion");
                     } else if (var.length() > copy.getReferenceNucleotide().length() && copy.getReferenceNucleotide().length() == 1) {
                         // insertion
                         copy.setPaddingBase(v.getReferenceNucleotide());
@@ -334,7 +365,15 @@ public class HrdpVariants {
                         copy.setReferenceNucleotide(null);
                         var = var.substring(1);
                         copy.setVariantNucleotide(var);
-                        copy.setVariantType("ins");
+                        copy.setVariantType("insertion");
+                    } else if (var.length() > v.getReferenceNucleotide().length() && var.startsWith(v.getReferenceNucleotide())){
+                        copy.setPaddingBase(v.getReferenceNucleotide());
+                        copy.setStartPos(v.getStartPos()+v.getReferenceNucleotide().length());
+                        copy.setEndPos(v.getStartPos()+1);
+                        copy.setReferenceNucleotide(null);
+                        var = var.replaceFirst(v.getPaddingBase(),"");
+                        copy.setVariantNucleotide(var);
+                        copy.setVariantType("insertion");
                     } else {
                         copy.setVariantNucleotide(varNucs[i]);
                         if (copy.getReferenceNucleotide().length() == copy.getVariantNucleotide().length()) {
@@ -365,13 +404,13 @@ public class HrdpVariants {
                     if (Utils.stringsAreEqual(copy.getReferenceNucleotide(),dbVar.getReferenceNucleotide() ) && Utils.stringsAreEqual(copy.getVariantNucleotide(), dbVar.getVariantNucleotide())
                     && copy.getStartPos()==dbVar.getStartPos()){
                         exist = true;
-                        VariantSampleDetail dbSam = dao.getVariantSampleDetail((int)dbVar.getId(),s.getId());
-                        if (dbSam==null){
+                        int sampleCnt = dao.getVariantSampleDetailCount((int)dbVar.getId(),s.getId());
+                        if (sampleCnt==0){
                             VariantSampleDetail newSample = new VariantSampleDetail();
                             newSample.setId(dbVar.getId());
                             newSample.setSampleId(s.getId());
                             newSample.setDepth(totalDepth);
-                            int varFreq = Integer.parseInt(depths[i+1]);
+//                            int varFreq = Integer.parseInt(depths[i+1]);
                             newSample.setVariantFrequency(varFreq);
                             zygosity.computeZygosityStatus(newSample.getVariantFrequency(),newSample.getDepth(),s.getGender(),dbVar, newSample);
 
@@ -395,7 +434,7 @@ public class HrdpVariants {
                     newSample.setId(copy.getId());
                     newSample.setSampleId(s.getId());
                     newSample.setDepth(totalDepth);
-                    int varFreq = Integer.parseInt(depths[i+1]);
+
                     newSample.setVariantFrequency(varFreq);
                     zygosity.computeZygosityStatus(newSample.getVariantFrequency(), newSample.getDepth(), s.getGender(), v, newSample);
 
@@ -413,42 +452,45 @@ public class HrdpVariants {
         else {
             // check if variant exists, if not generate rgdId
             // check if sample exists only if variant exists
-            boolean exist = false;
-            for (VariantMapData dbVar : dbVars) {
-                if (Utils.stringsAreEqual(v.getReferenceNucleotide(),dbVar.getReferenceNucleotide() ) && Utils.stringsAreEqual(v.getVariantNucleotide(), dbVar.getVariantNucleotide())
-                && v.getStartPos()==dbVar.getStartPos()){
-                    exist = true;
-                    VariantSampleDetail dbSam = dao.getVariantSampleDetail((int)dbVar.getId(),s.getId());
-                    if (dbSam==null){
-                        VariantSampleDetail newSample = new VariantSampleDetail();
-                        newSample.setId(dbVar.getId());
-                        newSample.setSampleId(s.getId());
-                        newSample.setDepth(totalDepth);
-                        int varFreq = Integer.parseInt(depths[1]);
-                        newSample.setVariantFrequency(varFreq);
-                        zygosity.computeZygosityStatus(newSample.getVariantFrequency(),newSample.getDepth(),s.getGender(),dbVar, newSample);
+            int varFreq = Integer.parseInt(depths[1]);
+            if (varFreq!=0) {
+                boolean exist = false;
+                for (VariantMapData dbVar : dbVars) {
+                    if (Utils.stringsAreEqual(v.getReferenceNucleotide(), dbVar.getReferenceNucleotide()) && Utils.stringsAreEqual(v.getVariantNucleotide(), dbVar.getVariantNucleotide())
+                            && v.getStartPos() == dbVar.getStartPos()) {
+                        exist = true;
 
-                        int zygPercentRead = varFreq / newSample.getDepth();
-                        newSample.setZygosityPercentRead(zygPercentRead);
-                        samples.add(newSample);
+                        int sampleCnt = dao.getVariantSampleDetailCount((int) dbVar.getId(), s.getId());
+                        if (sampleCnt == 0) {
+                            VariantSampleDetail newSample = new VariantSampleDetail();
+                            newSample.setId(dbVar.getId());
+                            newSample.setSampleId(s.getId());
+                            newSample.setDepth(totalDepth);
+//                        int varFreq = Integer.parseInt(depths[1]);
+                            newSample.setVariantFrequency(varFreq);
+                            zygosity.computeZygosityStatus(newSample.getVariantFrequency(), newSample.getDepth(), s.getGender(), dbVar, newSample);
 
-                    }
-                    if (dbVar.getEndPos() != v.getEndPos() && v.getEndPos()!=0) {
-                        dbVar.setEndPos(v.getEndPos());
-                        tobeUpdated.add(dbVar);
+                            int zygPercentRead = varFreq / newSample.getDepth();
+                            newSample.setZygosityPercentRead(zygPercentRead);
+                            samples.add(newSample);
+
+                        }
+                        if (dbVar.getEndPos() != v.getEndPos() && v.getEndPos() != 0) {
+                            dbVar.setEndPos(v.getEndPos());
+                            tobeUpdated.add(dbVar);
+                        }
                     }
                 }
-            }
-            if (!exist) {
+                if (!exist) {
 
                     RgdId r = dao.createRgdId(RgdId.OBJECT_KEY_VARIANTS, "ACTIVE", "created by HRDP Load Pipeline", mapKey);
                     v.setId(r.getRgdId());
-                // create sample
+                    // create sample
                     VariantSampleDetail newSample = new VariantSampleDetail();
                     newSample.setId(v.getId());
                     newSample.setSampleId(s.getId());
                     newSample.setDepth(totalDepth);
-                    int varFreq = Integer.parseInt(depths[1]);
+//                    int varFreq = Integer.parseInt(depths[1]);
                     newSample.setVariantFrequency(varFreq);
                     zygosity.computeZygosityStatus(newSample.getVariantFrequency(), newSample.getDepth(), s.getGender(), v, newSample);
 
@@ -457,8 +499,9 @@ public class HrdpVariants {
                     samples.add(newSample);
                     vars.add(v);
 
-            }
+                }
 //            vars.add(v);
+            }
         }
         return vars;
     }
