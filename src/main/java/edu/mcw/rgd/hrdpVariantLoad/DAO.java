@@ -80,6 +80,9 @@ public class DAO {
         return totalRowsAffected;
     }
 
+    public void insertVariantRgdIds(Collection<VariantMapData> mapData) throws Exception {
+        vdao.insertVariantRgdIds(mapData);
+    }
     public void insertVariants(List<VariantMapData> mapsData)  throws Exception{
         BatchSqlUpdate sql1 = new BatchSqlUpdate(this.getVariantDataSource(),
                 "INSERT INTO variant (\n" +

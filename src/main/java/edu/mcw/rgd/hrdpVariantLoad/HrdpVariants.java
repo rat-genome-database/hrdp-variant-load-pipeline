@@ -110,6 +110,7 @@ public class HrdpVariants {
         }
         if (!variants.isEmpty()){
             logger.info("\t\tVariants being entered: " + variants.size());
+            dao.insertVariantRgdIds(variants);
             dao.insertVariants(variants);
             dao.insertVariantMapData(variants);
         }

@@ -3,6 +3,6 @@
     <bean id="hrdpVariants" class="edu.mcw.rgd.hrdpVariantLoad.HrdpVariants">
         <property name="version" value="HRDPVariant Loader -- Build from January 27, 2025"/>
         <property name="sampleIdStart" value="3127"/>
-        <property name="inputDir" value="data/SNPs"/>
+        <property name="inputDir" value="data/SNPs2"/>
     </bean>
 </beans>
