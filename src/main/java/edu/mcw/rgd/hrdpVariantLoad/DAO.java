@@ -1,30 +1,32 @@
 package edu.mcw.rgd.hrdpVariantLoad;
 
 import edu.mcw.rgd.dao.DataSourceFactory;
-import edu.mcw.rgd.dao.impl.RGDManagementDAO;
-import edu.mcw.rgd.dao.impl.SampleDAO;
-import edu.mcw.rgd.dao.impl.StrainDAO;
+import edu.mcw.rgd.dao.impl.*;
 import edu.mcw.rgd.dao.impl.variants.VariantDAO;
 import edu.mcw.rgd.dao.spring.variants.VariantMapQuery;
 import edu.mcw.rgd.dao.spring.variants.VariantSampleQuery;
-import edu.mcw.rgd.datamodel.RgdId;
-import edu.mcw.rgd.datamodel.Sample;
-import edu.mcw.rgd.datamodel.SpeciesType;
+import edu.mcw.rgd.datamodel.*;
 import edu.mcw.rgd.datamodel.variants.VariantMapData;
 import edu.mcw.rgd.datamodel.variants.VariantSampleDetail;
 import org.springframework.jdbc.core.SqlParameter;
 import org.springframework.jdbc.object.BatchSqlUpdate;
 
 import javax.sql.DataSource;
+import java.io.*;
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
+import java.util.zip.GZIPInputStream;
 
 public class DAO {
     private SampleDAO sampleDAO = new SampleDAO();
     private StrainDAO sdao = new StrainDAO();
     private VariantDAO vdao = new VariantDAO();
     private RGDManagementDAO managementDAO = new RGDManagementDAO();
+    private MapDAO mdao = new MapDAO();
+    private GeneDAO gdao = new GeneDAO();
     public String getConnection() {
         return vdao.getConnectionInfo();
     }
@@ -120,6 +122,10 @@ public class DAO {
         return q.execute(v.getMapKey(), v.getChromosome(), v.getStartPos());
     }
 
+    public List<VariantMapData> getVariantsWithGeneLocation(int mapKey, String chr, int start, int stop) throws Exception {
+        return vdao.getVariantsWithGeneLocation(mapKey,chr, start, stop);
+    }
+
     public void updateVariantEndPosBatch(Collection<VariantMapData> toBeUpdated) throws Exception{
         BatchSqlUpdate su = new BatchSqlUpdate(this.getVariantDataSource(),
                 "update variant_map_data set END_POS=? where RGD_ID=?",
@@ -131,4 +137,51 @@ public class DAO {
         su.flush();
     }
 
+    public void updateVariantMapDataGenicStatus(List<VariantMapData> mapsData) throws Exception {
+        BatchSqlUpdate sql2 = new BatchSqlUpdate(this.getVariantDataSource(),
+                "update variant_map_data set GENIC_STATUS=? where RGD_ID=?",
+                new int[]{Types.VARCHAR,Types.INTEGER});
+        sql2.compile();
+        for( VariantMapData v: mapsData) {
+            long id = v.getId();
+            sql2.update(v.getGenicStatus(),id);
+        }
+        sql2.flush();
+    }
+
+    public List<MapData> getMapDataWithinRange(int start, int stop, String chr, int mapKey, int range) throws Exception{
+        return mdao.getMapDataWithinRange(start,stop,chr,mapKey,range);
+    }
+
+    public Gene getGene(int rgdId) throws Exception{
+        return gdao.getGene(rgdId);
+    }
+
+    public void listFilesInFolder(File folder, ArrayList<File> vcfFiles) throws Exception {
+        for (File file : Objects.requireNonNull(folder.listFiles())) {
+            if (file.isDirectory()) {
+                listFilesInFolder(file,vcfFiles);
+            } else {
+                if (file.getName().endsWith(".vcf.gz")) {
+//                    System.out.println(file.getName());
+                    vcfFiles.add(file);
+                }
+            }
+        }
+    }
+
+    public BufferedReader openFile(String fileName) throws IOException {
+
+        String encoding = "UTF-8"; // default encoding
+
+        InputStream is;
+        if( fileName.endsWith(".gz") ) {
+            is = new GZIPInputStream(new FileInputStream(fileName));
+        } else {
+            is = new FileInputStream(fileName);
+        }
+
+        BufferedReader reader = new BufferedReader(new InputStreamReader(is, encoding));
+        return reader;
+    }
 }

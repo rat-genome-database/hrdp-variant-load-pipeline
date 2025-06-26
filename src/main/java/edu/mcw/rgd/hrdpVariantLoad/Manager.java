@@ -13,8 +13,20 @@ public class Manager {
         DefaultListableBeanFactory bf = new DefaultListableBeanFactory();
         new XmlBeanDefinitionReader(bf).loadBeanDefinitions(new FileSystemResource("properties/AppConfigure.xml"));
         try {
-            HrdpVariants hrdpVariants = (HrdpVariants) (bf.getBean("hrdpVariants"));
-            hrdpVariants.main(args);
+            for (int i = 0; i < args.length; i++){
+                switch (args[i]){
+                    case "--mapKey":
+                        int mapKey = Integer.parseInt(args[++i]);
+                        HrdpVariants hrdpVariants = (HrdpVariants) (bf.getBean("hrdpVariants"));
+                        hrdpVariants.main(mapKey);
+                        break;
+                    case "--genicQc":
+                        GenicQc qc = (GenicQc) (bf.getBean("genicQc"));
+                        qc.run();
+                        break;
+                }
+            }
+
         }
         catch (Exception e) {
             Utils.printStackTrace(e, LogManager.getLogger("status"));

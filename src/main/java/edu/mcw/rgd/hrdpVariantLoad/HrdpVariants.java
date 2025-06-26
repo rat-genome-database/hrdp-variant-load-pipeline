@@ -26,7 +26,7 @@ public class HrdpVariants {
     private final DAO dao = new DAO();
     private SimpleDateFormat sdt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     private int zeroDepthCnt = 0;
-    public void main(String[] args) throws Exception {
+    public void main(int mapKey) throws Exception {
 
         logger.info(getVersion());
         logger.info("   "+dao.getConnection());
@@ -34,19 +34,11 @@ public class HrdpVariants {
         long pipeStart = System.currentTimeMillis();
         logger.info("Pipeline started at "+sdt.format(new Date(pipeStart))+"\n");
 
-        for (int i = 0; i < args.length; i++){
-            switch (args[i]){
-                case "--mapKey":
-                    mapKey = Integer.parseInt(args[++i]);
-                    break;
-            }
-        }
-
         geneCacheMap = new HashMap<>();
         // loops through files
         File folder = new File(inputDir);
         ArrayList<File> files = new ArrayList<>();
-        listFilesInFolder(folder, files);
+        dao.listFilesInFolder(folder, files);
 
         for (File file : files) {
             parse(file);
@@ -86,7 +78,7 @@ public class HrdpVariants {
 
         // parse file and insert/add samples to variants
         logger.info("\tBegin parsing file... " + file.getName());
-        BufferedReader br = openFile(file.getAbsolutePath());
+        BufferedReader br = dao.openFile(file.getAbsolutePath());
         String lineData;
         List<VariantMapData> variants = new ArrayList<>();
         List<VariantMapData> tobeUpdated = new ArrayList<>();
@@ -120,19 +112,6 @@ public class HrdpVariants {
         }
         logger.info("\tEnd parsing file... " + file.getName());
 //        System.out.println(variants.size());
-    }
-
-    void listFilesInFolder(File folder, ArrayList<File> vcfFiles) throws Exception {
-        for (File file : Objects.requireNonNull(folder.listFiles())) {
-            if (file.isDirectory()) {
-                listFilesInFolder(file,vcfFiles);
-            } else {
-                if (file.getName().endsWith(".vcf.gz")) {
-//                    System.out.println(file.getName());
-                    vcfFiles.add(file);
-                }
-            }
-        }
     }
 
     String getStrainName(String fileName) throws Exception{
@@ -511,21 +490,6 @@ public class HrdpVariants {
         int strainStop = sampleName.indexOf('(')-1;
         String strainName = sampleName.substring(0,strainStop);
         return dao.getStrainRgdIdByTaglessStrainSymbol(strainName);
-    }
-
-    private BufferedReader openFile(String fileName) throws IOException {
-
-        String encoding = "UTF-8"; // default encoding
-
-        InputStream is;
-        if( fileName.endsWith(".gz") ) {
-            is = new GZIPInputStream(new FileInputStream(fileName));
-        } else {
-            is = new FileInputStream(fileName);
-        }
-
-        BufferedReader reader = new BufferedReader(new InputStreamReader(is, encoding));
-        return reader;
     }
 
     boolean isGenic(VariantMapData v) throws Exception {
