@@ -190,10 +190,11 @@ public class GenicQc {
                     // 0/1 :ref 32,allele 9: total depth 41 :99:130,0,872
                     break;
             }
+//            if (Utils.stringsAreEqual(v.getRsId(), "rs3319176509"))
+//                System.out.println("here");
             List<VariantMapData> variantsInTable = dao.getVariantsWithGeneLocation(mapKey, v.getChromosome(), (int) v.getStartPos(), (int) v.getEndPos());
             for (VariantMapData variant : variantsInTable) {
-                if (Utils.stringsAreEqual(v.getRsId(), variant.getRsId()) && Utils.stringsAreEqual(v.getReferenceNucleotide(), variant.getReferenceNucleotide())
-                        && Utils.stringsAreEqual(v.getVariantNucleotide(), variant.getVariantNucleotide())) {
+                if (Utils.stringsAreEqual(v.getRsId(), variant.getRsId())) {
                     String oldGenicStat = variant.getGenicStatus();
 //                    List<MapData> mapData = dao.getMapDataWithinRange((int)variant.getStartPos(),(int)variant.getEndPos(),variant.getChromosome(),mapKey,1);
 //                    List<MapData> dataList = new ArrayList<>();
@@ -208,8 +209,7 @@ public class GenicQc {
 //                    }
                     if (isGenic(variant)) {
                         variant.setGenicStatus("GENIC");
-                    }
-                    else {
+                    } else {
                         variant.setGenicStatus("INTERGENIC");
                     }
                     if (!Utils.stringsAreEqualIgnoreCase(variant.getGenicStatus(), oldGenicStat))
@@ -233,6 +233,12 @@ public class GenicQc {
             geneCache.loadCache(mapKey, v.getChromosome(), DataSourceFactory.getInstance().getDataSource());
         }
         List<Integer> geneRgdIds = geneCache.getGeneRgdIds((int)v.getStartPos(), (int)v.getStartPos());
+        if (Utils.stringsAreEqual(v.getRsId(), "rs3319176509")){
+            logger.info("rs3319176509 - a problem child that is genic when it is not");
+            for (int id : geneRgdIds){
+                logger.info(id);
+            }
+        }
         return !geneRgdIds.isEmpty();
     }
     Map<String, GeneCache> geneCacheMap = new HashMap<>();
