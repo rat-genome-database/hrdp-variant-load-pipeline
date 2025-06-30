@@ -190,6 +190,7 @@ public class GenicQc {
                     // 0/1 :ref 32,allele 9: total depth 41 :99:130,0,872
                     break;
             }
+        } // end for
 //            if (Utils.stringsAreEqual(v.getRsId(), "rs3319176509"))
 //                System.out.println("here");
             List<VariantMapData> variantsInTable = dao.getVariantsWithGeneLocation(mapKey, v.getChromosome(), (int) v.getStartPos(), (int) v.getEndPos());
@@ -218,7 +219,7 @@ public class GenicQc {
                 }
             }
 
-        } // end for
+
 
 
     }
