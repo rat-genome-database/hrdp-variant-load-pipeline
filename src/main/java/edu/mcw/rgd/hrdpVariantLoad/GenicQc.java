@@ -194,27 +194,28 @@ public class GenicQc {
 //            if (Utils.stringsAreEqual(v.getRsId(), "rs3319176509"))
 //                System.out.println("here");
             List<VariantMapData> variantsInTable = dao.getVariantsWithGeneLocation(mapKey, v.getChromosome(), (int) v.getStartPos(), (int) v.getEndPos());
-            for (VariantMapData variant : variantsInTable) {
-                String oldGenicStat = variant.getGenicStatus();
-                    List<MapData> mapData = dao.getMapDataWithinRange((int)variant.getStartPos(),(int)variant.getEndPos(),variant.getChromosome(),mapKey,1);
-                    List<MapData> dataList = new ArrayList<>();
-                    if (mapData.size()>0) {
-                        dataList.addAll(mapData);
-                    }
-                    if (!dataList.isEmpty()){
-                        variant.setGenicStatus("GENIC");
-                    }
-                    else {
-                        variant.setGenicStatus("INTERGENIC");
-                    }
+        List<MapData> mapData = dao.getMapDataWithinRange((int)v.getStartPos(),(int)v.getEndPos(),v.getChromosome(),mapKey,1);
+        for (VariantMapData variant : variantsInTable) {
+            String oldGenicStat = variant.getGenicStatus();
+                
+                List<MapData> dataList = new ArrayList<>();
+                if (mapData.size()>0) {
+                    dataList.addAll(mapData);
+                }
+                if (!dataList.isEmpty()){
+                    variant.setGenicStatus("GENIC");
+                }
+                else {
+                    variant.setGenicStatus("INTERGENIC");
+                }
 //                if (isGenic(variant)) {
 //                    variant.setGenicStatus("GENIC");
 //                } else {
 //                    variant.setGenicStatus("INTERGENIC");
 //                }
-                if (!Utils.stringsAreEqualIgnoreCase(variant.getGenicStatus(), oldGenicStat))
-                    tobeUpdated.add(variant);
-                break;
+            if (!Utils.stringsAreEqualIgnoreCase(variant.getGenicStatus(), oldGenicStat))
+                tobeUpdated.add(variant);
+            break;
         } // end var for
 
     }
