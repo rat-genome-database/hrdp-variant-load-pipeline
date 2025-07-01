@@ -113,6 +113,7 @@ public class GenicQc {
                     if (data[i].contains(",")) {
                         needCopyVar = true;
                         v.setVariantNucleotide(data[i]);
+                        v.setEndPos(v.getStartPos()+1);
                     } else {
 
                         if (data[i].equals("*")) {
@@ -229,7 +230,7 @@ public class GenicQc {
             geneCache.loadCache(mapKey, v.getChromosome(), DataSourceFactory.getInstance().getDataSource());
         }
         List<Integer> geneRgdIds = geneCache.getGeneRgdIds((int)v.getStartPos(), (int)v.getStartPos());
-        if (Utils.stringsAreEqual(v.getRsId(), "rs3319176509")){
+        if (v.getStartPos()==200649644 && Utils.stringsAreEqual(v.getChromosome(),"1")){
             logger.info("rs3319176509 - a problem child that is genic when it is not");
             for (int id : geneRgdIds){
                 logger.info(id);
