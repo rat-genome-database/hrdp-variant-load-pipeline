@@ -230,11 +230,8 @@ public class GenicQc {
             geneCache.loadCache(mapKey, v.getChromosome(), DataSourceFactory.getInstance().getDataSource());
         }
         List<Integer> geneRgdIds = geneCache.getGeneRgdIds((int)v.getStartPos(), (int)v.getStartPos());
-        if (v.getStartPos()==200649644 && Utils.stringsAreEqual(v.getChromosome(),"1")){
-            logger.info("rs3319176509 - a problem child that is genic when it is not");
-            for (int id : geneRgdIds){
-                logger.info(id);
-            }
+        for (int id : geneRgdIds){
+            logger.debug(id);
         }
         return !geneRgdIds.isEmpty();
     }
