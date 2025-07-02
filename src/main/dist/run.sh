@@ -13,6 +13,6 @@ cd $APPDIR
 
 java -Dspring.config=$APPDIR/../properties/default_db2.xml \
     -Dlog4j.configurationFile=file://$APPDIR/properties/log4j2.xml \
-    -Xmx20g -jar lib/$APPNAME.jar --mapKey 372 "$@" > run.log 2>&1
+    -Xmx20g -jar lib/$APPNAME.jar --runLoad "$@" > run.log 2>&1
 
 mailx -s "[$SERVER] HRDP Variant load Pipeline Run" $EMAILLIST < $APPDIR/logs/summary.log

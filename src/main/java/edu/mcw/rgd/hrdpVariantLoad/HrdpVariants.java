@@ -19,14 +19,14 @@ public class HrdpVariants {
 
     private String version;
     int sampleIdStart;
+    private int mapKey;
     protected Logger logger = LogManager.getLogger("status");
     private Zygosity zygosity = new Zygosity();
     private String inputDir;
-    private int mapKey = 0;
     private final DAO dao = new DAO();
     private SimpleDateFormat sdt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     private int zeroDepthCnt = 0;
-    public void main(int mapKey) throws Exception {
+    public void main() throws Exception {
 
         logger.info(getVersion());
         logger.info("   "+dao.getConnection());
@@ -277,7 +277,10 @@ public class HrdpVariants {
                     break;
             }
         }
-        v.setGenicStatus( isGenic(v) ? "GENIC":"INTERGENIC"  );
+        if (isGenic(v))
+            v.setGenicStatus( "GENIC");
+        else
+            v.setGenicStatus("INTERGENIC" );
         v.setMapKey(mapKey);
         v.setSpeciesTypeKey(3);
         List<VariantMapData> dbVars = dao.getVariant(v);
@@ -501,6 +504,10 @@ public class HrdpVariants {
             geneCache.loadCache(mapKey, v.getChromosome(), DataSourceFactory.getInstance().getDataSource());
         }
         List<Integer> geneRgdIds = geneCache.getGeneRgdIds((int)v.getStartPos(), (int)v.getEndPos());
+        logger.debug("Variant position: "+v.getChromosome()+":"+v.getStartPos());
+        for (int id : geneRgdIds){
+            logger.debug("\tGene rgdId: "+id);
+        }
         return !geneRgdIds.isEmpty();
     }
     Map<String, GeneCache> geneCacheMap;
@@ -527,5 +534,13 @@ public class HrdpVariants {
 
     public String getInputDir(){
         return inputDir;
+    }
+
+    public void setMapKey(int mapKey) {
+        this.mapKey = mapKey;
+    }
+
+    public int getMapKey() {
+        return mapKey;
     }
 }

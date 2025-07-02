@@ -1,3 +1,6 @@
+June 23, 2025
+ making a QC for the hrdp variants for the genic status
+
 January 27, 2025
 updating some methods with RGD Core and ignoring frequency of 0 for variants
 

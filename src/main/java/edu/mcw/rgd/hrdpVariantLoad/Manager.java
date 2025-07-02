@@ -15,10 +15,10 @@ public class Manager {
         try {
             for (int i = 0; i < args.length; i++){
                 switch (args[i]){
-                    case "--mapKey":
+                    case "--runLoad":
                         int mapKey = Integer.parseInt(args[++i]);
                         HrdpVariants hrdpVariants = (HrdpVariants) (bf.getBean("hrdpVariants"));
-                        hrdpVariants.main(mapKey);
+                        hrdpVariants.main();
                         break;
                     case "--genicQc":
                         GenicQc qc = (GenicQc) (bf.getBean("genicQc"));

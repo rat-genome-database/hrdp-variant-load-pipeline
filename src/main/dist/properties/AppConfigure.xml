@@ -4,6 +4,7 @@
         <property name="version" value="HRDPVariant Loader -- Build from January 27, 2025"/>
         <property name="sampleIdStart" value="3127"/>
         <property name="inputDir" value="data/SNPs"/>
+        <property name="mapKey" value="372"/>
     </bean>
     <bean id="genicQc" class="edu.mcw.rgd.hrdpVariantLoad.GenicQc">
         <property name="version" value="HRDPVariant Genic QC -- Build from June 24, 2025"/>

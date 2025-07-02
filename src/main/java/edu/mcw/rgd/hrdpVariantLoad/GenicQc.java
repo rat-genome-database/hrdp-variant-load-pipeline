@@ -20,7 +20,7 @@ public class GenicQc {
     private String inputDir;
     private int mapKey;
 
-    protected Logger logger = LogManager.getLogger("status");
+    protected Logger logger = LogManager.getLogger("qcStatus");
     private DAO dao = new DAO();
     private SimpleDateFormat sdt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
@@ -230,8 +230,9 @@ public class GenicQc {
             geneCache.loadCache(mapKey, v.getChromosome(), DataSourceFactory.getInstance().getDataSource());
         }
         List<Integer> geneRgdIds = geneCache.getGeneRgdIds((int)v.getStartPos(), (int)v.getStartPos());
+        logger.debug("Variant position: "+v.getChromosome()+":"+v.getStartPos());
         for (int id : geneRgdIds){
-            logger.debug(id);
+            logger.debug("\tGene rgdId: "+id);
         }
         return !geneRgdIds.isEmpty();
     }
