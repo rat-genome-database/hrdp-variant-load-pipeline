@@ -15,4 +15,4 @@ java -Dspring.config=$APPDIR/../properties/default_db2.xml \
     -Dlog4j.configurationFile=file://$APPDIR/properties/log4j2.xml \
     -Xmx20g -jar lib/$APPNAME.jar --genicQc "$@" > run.log 2>&1
 
-mailx -s "[$SERVER] HRDP Variant load Pipeline QC Run" llamers@mcw.edu < $APPDIR/logs/summary.log
+mailx -s "[$SERVER] HRDP Variant load Pipeline QC Run" llamers@mcw.edu < $APPDIR/logs/qcSummary.log
