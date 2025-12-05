@@ -16,7 +16,6 @@ public class Manager {
             for (int i = 0; i < args.length; i++){
                 switch (args[i]){
                     case "--runLoad":
-                        int mapKey = Integer.parseInt(args[++i]);
                         HrdpVariants hrdpVariants = (HrdpVariants) (bf.getBean("hrdpVariants"));
                         hrdpVariants.main();
                         break;

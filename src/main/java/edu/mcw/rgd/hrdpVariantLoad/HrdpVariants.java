@@ -23,9 +23,12 @@ public class HrdpVariants {
     protected Logger logger = LogManager.getLogger("status");
     private Zygosity zygosity = new Zygosity();
     private String inputDir;
+    private String inputFile;
+    private Map<String, Integer> colNameToSampleId;
     private final DAO dao = new DAO();
     private SimpleDateFormat sdt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     private int zeroDepthCnt = 0;
+    private int totalSamples = 0;
     public void main() throws Exception {
 
         logger.info(getVersion());
@@ -36,13 +39,14 @@ public class HrdpVariants {
 
         geneCacheMap = new HashMap<>();
         // loops through files
-        File folder = new File(inputDir);
-        ArrayList<File> files = new ArrayList<>();
-        dao.listFilesInFolder(folder, files);
-
-        for (File file : files) {
-            parse(file);
-        }
+        File file = new File(inputFile);
+        parse(file);
+//        ArrayList<File> files = new ArrayList<>();
+//        dao.listFilesInFolder(folder, files);
+//
+//        for (File file : files) {
+//            parse(file);
+//        }
 
         logger.info("Total pipeline runtime -- elapsed time: "+
                 Utils.formatElapsedTime(pipeStart,System.currentTimeMillis()));
@@ -50,31 +54,32 @@ public class HrdpVariants {
 
     void parse(File file) throws Exception{
         zeroDepthCnt = 0;
+        totalSamples = 0;
         // create samples and insert them
         // parse through files and insert variants
-        String name = getStrainName(file.getName());
+//        String name = getStrainName(file.getName());
 //        System.out.println(name);
-        Integer strainRgdId = getStrainRgdId(name);
-
-        Sample sample = dao.getSampleByAnalysisNameAndMapKey(name,mapKey);
-
-        if (sample == null) {
-            logger.info("\t\tCreating new Sample for " + name);
-            sample = new Sample();
-            sample.setId(sampleIdStart);
-            sampleIdStart++;
-            sample.setAnalysisName(name);
-
-            if (strainRgdId != 0) {
-                sample.setStrainRgdId(strainRgdId);
-            }
-            sample.setGender("U");
-            sample.setDescription("Dr. Mindy Dwinell - Hybrid rat diversity program");
-            sample.setPatientId(372); // default is rat 7.2 patient id, 372
-            sample.setMapKey(mapKey);
-            sample.setGrantNumber("R24OD022617");
-            dao.insertSample(sample);
-        }
+//        Integer strainRgdId = getStrainRgdId(name);
+//
+//        Sample sample = dao.getSampleByAnalysisNameAndMapKey(name,mapKey);
+//
+//        if (sample == null) {
+//            logger.info("\t\tCreating new Sample for " + name);
+//            sample = new Sample();
+//            sample.setId(sampleIdStart);
+//            sampleIdStart++;
+//            sample.setAnalysisName(name);
+//
+//            if (strainRgdId != 0) {
+//                sample.setStrainRgdId(strainRgdId);
+//            }
+//            sample.setGender("U");
+//            sample.setDescription("Dr. Mindy Dwinell - Hybrid rat diversity program");
+//            sample.setPatientId(380); // default is rat 8 patient id, 380
+//            sample.setMapKey(mapKey);
+//            sample.setGrantNumber("R24OD022617");
+//            dao.insertSample(sample);
+//        }
 
         // parse file and insert/add samples to variants
         logger.info("\tBegin parsing file... " + file.getName());
@@ -83,14 +88,34 @@ public class HrdpVariants {
         List<VariantMapData> variants = new ArrayList<>();
         List<VariantMapData> tobeUpdated = new ArrayList<>();
         List<VariantSampleDetail> samples = new ArrayList<>();
+        HashMap<Integer, Sample> strainSamples = new HashMap<>();
+        int totalVars = 0;
         while ((lineData = br.readLine()) != null){
-            if (lineData.startsWith("#"))
+            if (lineData.startsWith("##"))
                 continue;
+            if (lineData.startsWith("#CHROM")){
+                // get sample from column names, and assign to map
+                String[] splitCols = lineData.split("\t");
+                for (int i = 9; i < splitCols.length; i++){
+                    Integer sampleId = colNameToSampleId.get(splitCols[i]);
+                    if (sampleId != null) {
+                        Sample s = dao.getSampleBySampleId(sampleId);
+                        strainSamples.put(i,s);
+                    }
+                }
+                continue;
+            }
 
-
-            List<VariantMapData> vars = parseLineData(lineData, samples, sample, tobeUpdated);
-            if (!vars.isEmpty())
-                variants.addAll(vars);
+            totalVars += parseLineData(lineData, strainSamples, tobeUpdated);
+//            variants.addAll(vars);
+//            if (samples.size()>=50000){
+////                logger.info("\t\tNew samples being created: " + samples.size());
+//                dao.insertVariantSample(samples);
+//                totalSamples += samples.size();
+//                samples.clear();
+//            }
+//            if (!vars.isEmpty())
+//                variants.addAll(vars);
 
         } // end of file read
         if (zeroDepthCnt!=0){
@@ -98,17 +123,18 @@ public class HrdpVariants {
         }
         if (!tobeUpdated.isEmpty()){
             logger.info("\t\tVariants end pos being updated: "+tobeUpdated.size());
-            dao.updateVariantEndPosBatch(tobeUpdated);
+//            dao.updateVariantEndPosBatch(tobeUpdated);
         }
-        if (!variants.isEmpty()){
-            logger.info("\t\tVariants being entered: " + variants.size());
-            dao.insertVariantRgdIds(variants);
-            dao.insertVariants(variants);
-            dao.insertVariantMapData(variants);
+        if (totalVars != 0){
+            logger.info("\t\tVariants being entered: " + totalVars);
+//            dao.insertVariantRgdIds(variants);
+//            dao.insertVariants(variants);
+//            dao.insertVariantMapData(variants);
         }
-        if (!samples.isEmpty()){
-            logger.info("\t\tNew samples being created: " + samples.size());
-            dao.insertVariantSample(samples);
+        if (totalSamples != 0){
+//            totalSamples += samples.size();
+            logger.info("\t\tTotal samples being created: " + totalSamples);
+//            dao.insertVariantSample(samples);
         }
         logger.info("\tEnd parsing file... " + file.getName());
 //        System.out.println(variants.size());
@@ -139,10 +165,12 @@ public class HrdpVariants {
         return strain;
     }
 
-    List<VariantMapData> parseLineData(String lineData, List<VariantSampleDetail> samples, Sample s, List<VariantMapData> tobeUpdated) throws Exception{
+    Integer parseLineData(String lineData, HashMap<Integer,Sample> sampleMap, List<VariantMapData> tobeUpdated) throws Exception{
         // CHROM  POS     ID      REF     ALT     QUAL    FILTER  INFO    FORMAT  ACI_EurMcwi_2019NG
         VariantMapData v = new VariantMapData();
-        List<VariantMapData> vars = new ArrayList<>();
+        ArrayList<VariantMapData> vars = new ArrayList<>();
+        ArrayList<VariantMapData> existing = new ArrayList<>();
+        List<VariantSampleDetail> samples = new ArrayList<>();
         boolean needCopyVar = false;
         boolean needCopyRef = false;
         Integer totalDepth = null;
@@ -150,12 +178,12 @@ public class HrdpVariants {
         String[] depths = new String[0];
         // first check if ref or alt has a ','
         // if yes, make a copy of
-        for (int i = 0; i < data.length; i++){
+        for (int i = 0; i < 9; i++){
             switch (i){
                 case 0: // chrom
                     // chrM is for MT
                     if (data[i].contains("unplaced") || data[i].contains("unloc") || data[i].contains("contig") || data[i].contains("scaffold")){
-                        return new ArrayList<>(0);
+                        return 0;
                     }
                     v.setChromosome(data[i].replace("chr",""));
                     if (v.getChromosome().equalsIgnoreCase("M"))
@@ -166,8 +194,9 @@ public class HrdpVariants {
                     v.setStartPos(start);
                     break;
                 case 2: // id
-                    if (!data[i].equals("."))
+                    if (!data[i].equals(".")) {
                         v.setRsId(data[i]);
+                    }
                     break;
                 case 3: // ref
                     if (data[i].contains(",")) {
@@ -272,7 +301,7 @@ public class HrdpVariants {
                     {
                         zeroDepthCnt++;
 //                        logger.info(lineData);
-                        return new ArrayList<>(0);
+                        return 0;
                     }
                     break;
             }
@@ -283,7 +312,11 @@ public class HrdpVariants {
             v.setGenicStatus("INTERGENIC" );
         v.setMapKey(mapKey);
         v.setSpeciesTypeKey(3);
-        List<VariantMapData> dbVars = dao.getVariant(v);
+        List<VariantMapData> dbVars;
+        if (Utils.stringsAreEqual(v.getRsId(),"."))
+             dbVars = dao.getVariant(v);
+        else
+            dbVars = dao.getVariantByRsId(v);
         List<VariantMapData> newVars = new ArrayList<>();
         if (needCopyRef || needCopyVar){
             String[] refNucs = {};
@@ -302,9 +335,6 @@ public class HrdpVariants {
 //            List<VariantMapData> variantCopies = new ArrayList<>();
             for (int i = 0; i < cnt; i++){
                 VariantMapData copy = new VariantMapData();
-                int varFreq = Integer.parseInt(depths[i+1]);
-                if (varFreq==0)
-                    continue;
                 copy.setChromosome(v.getChromosome());
                 copy.setRsId(v.getRsId());
 
@@ -387,21 +417,22 @@ public class HrdpVariants {
                     if (Utils.stringsAreEqual(copy.getReferenceNucleotide(),dbVar.getReferenceNucleotide() ) && Utils.stringsAreEqual(copy.getVariantNucleotide(), dbVar.getVariantNucleotide())
                     && copy.getStartPos()==dbVar.getStartPos()){
                         exist = true;
-                        int sampleCnt = dao.getVariantSampleDetailCount((int)dbVar.getId(),s.getId());
-                        if (sampleCnt==0){
-                            VariantSampleDetail newSample = new VariantSampleDetail();
-                            newSample.setId(dbVar.getId());
-                            newSample.setSampleId(s.getId());
-                            newSample.setDepth(totalDepth);
-//                            int varFreq = Integer.parseInt(depths[i+1]);
-                            newSample.setVariantFrequency(varFreq);
-                            zygosity.computeZygosityStatus(newSample.getVariantFrequency(),newSample.getDepth(),s.getGender(),dbVar, newSample);
-
-                            int zygPercentRead = varFreq / newSample.getDepth();
-                            newSample.setZygosityPercentRead(zygPercentRead);
-                            samples.add(newSample);
-
-                        }
+                        existing.add(dbVar);
+//                        int sampleCnt = dao.getVariantSampleDetailCount((int)dbVar.getId(),s.getId());
+//                        if (sampleCnt==0){
+//                            VariantSampleDetail newSample = new VariantSampleDetail();
+//                            newSample.setId(dbVar.getId());
+//                            newSample.setSampleId(s.getId());
+//                            newSample.setDepth(totalDepth);
+////                            int varFreq = Integer.parseInt(depths[i+1]);
+//                            newSample.setVariantFrequency(varFreq);
+//                            zygosity.computeZygosityStatus(newSample.getVariantFrequency(),newSample.getDepth(),s.getGender(),dbVar, newSample);
+//
+//                            int zygPercentRead = varFreq / newSample.getDepth();
+//                            newSample.setZygosityPercentRead(zygPercentRead);
+//                            samples.add(newSample);
+//
+//                        }
                         if (dbVar.getEndPos() != copy.getEndPos() && copy.getEndPos()!=0) {
                             dbVar.setEndPos(copy.getEndPos());
                             tobeUpdated.add(dbVar);
@@ -411,19 +442,20 @@ public class HrdpVariants {
                 if (!exist) {
                     RgdId r = dao.createRgdId(RgdId.OBJECT_KEY_VARIANTS, "ACTIVE", "created by HRDP Load Pipeline", mapKey);
                     copy.setId(r.getRgdId());
+//                    v.setId(0);
 //                    var.setId(r.getRgdId());
                     // create sample
-                    VariantSampleDetail newSample = new VariantSampleDetail();
-                    newSample.setId(copy.getId());
-                    newSample.setSampleId(s.getId());
-                    newSample.setDepth(totalDepth);
+//                    VariantSampleDetail newSample = new VariantSampleDetail();
+//                    newSample.setId(copy.getId());
+//                    newSample.setSampleId(s.getId());
+//                    newSample.setDepth(totalDepth);
 
-                    newSample.setVariantFrequency(varFreq);
-                    zygosity.computeZygosityStatus(newSample.getVariantFrequency(), newSample.getDepth(), s.getGender(), v, newSample);
-
-                    int zygPercentRead = varFreq / newSample.getDepth();
-                    newSample.setZygosityPercentRead(zygPercentRead);
-                    samples.add(newSample);
+//                    newSample.setVariantFrequency(varFreq);
+//                    zygosity.computeZygosityStatus(newSample.getVariantFrequency(), newSample.getDepth(), s.getGender(), v, newSample);
+//
+//                    int zygPercentRead = varFreq / newSample.getDepth();
+//                    newSample.setZygosityPercentRead(zygPercentRead);
+//                    samples.add(newSample);
                     newVars.add(copy);
 
                 }
@@ -433,31 +465,27 @@ public class HrdpVariants {
             vars.addAll(newVars);
         }
         else {
-            // check if variant exists, if not generate rgdId
-            // check if sample exists only if variant exists
-            int varFreq = Integer.parseInt(depths[1]);
-            if (varFreq!=0) {
                 boolean exist = false;
                 for (VariantMapData dbVar : dbVars) {
                     if (Utils.stringsAreEqual(v.getReferenceNucleotide(), dbVar.getReferenceNucleotide()) && Utils.stringsAreEqual(v.getVariantNucleotide(), dbVar.getVariantNucleotide())
                             && v.getStartPos() == dbVar.getStartPos()) {
                         exist = true;
-
-                        int sampleCnt = dao.getVariantSampleDetailCount((int) dbVar.getId(), s.getId());
-                        if (sampleCnt == 0) {
-                            VariantSampleDetail newSample = new VariantSampleDetail();
-                            newSample.setId(dbVar.getId());
-                            newSample.setSampleId(s.getId());
-                            newSample.setDepth(totalDepth);
-//                        int varFreq = Integer.parseInt(depths[1]);
-                            newSample.setVariantFrequency(varFreq);
-                            zygosity.computeZygosityStatus(newSample.getVariantFrequency(), newSample.getDepth(), s.getGender(), dbVar, newSample);
-
-                            int zygPercentRead = varFreq / newSample.getDepth();
-                            newSample.setZygosityPercentRead(zygPercentRead);
-                            samples.add(newSample);
-
-                        }
+                        existing.add(dbVar);
+//                        int sampleCnt = dao.getVariantSampleDetailCount((int) dbVar.getId(), s.getId());
+//                        if (sampleCnt == 0) {
+//                            VariantSampleDetail newSample = new VariantSampleDetail();
+//                            newSample.setId(dbVar.getId());
+//                            newSample.setSampleId(s.getId());
+//                            newSample.setDepth(totalDepth);
+////                        int varFreq = Integer.parseInt(depths[1]);
+//                            newSample.setVariantFrequency(varFreq);
+//                            zygosity.computeZygosityStatus(newSample.getVariantFrequency(), newSample.getDepth(), s.getGender(), dbVar, newSample);
+//
+//                            int zygPercentRead = varFreq / newSample.getDepth();
+//                            newSample.setZygosityPercentRead(zygPercentRead);
+//                            samples.add(newSample);
+//
+//                        }
                         if (dbVar.getEndPos() != v.getEndPos() && v.getEndPos() != 0) {
                             dbVar.setEndPos(v.getEndPos());
                             tobeUpdated.add(dbVar);
@@ -468,25 +496,69 @@ public class HrdpVariants {
 
                     RgdId r = dao.createRgdId(RgdId.OBJECT_KEY_VARIANTS, "ACTIVE", "created by HRDP Load Pipeline", mapKey);
                     v.setId(r.getRgdId());
+//                    v.setId(0);
                     // create sample
-                    VariantSampleDetail newSample = new VariantSampleDetail();
-                    newSample.setId(v.getId());
-                    newSample.setSampleId(s.getId());
-                    newSample.setDepth(totalDepth);
-//                    int varFreq = Integer.parseInt(depths[1]);
-                    newSample.setVariantFrequency(varFreq);
-                    zygosity.computeZygosityStatus(newSample.getVariantFrequency(), newSample.getDepth(), s.getGender(), v, newSample);
-
-                    int zygPercentRead = varFreq / newSample.getDepth();
-                    newSample.setZygosityPercentRead(zygPercentRead);
-                    samples.add(newSample);
+//                    VariantSampleDetail newSample = new VariantSampleDetail();
+//                    newSample.setId(v.getId());
+//                    newSample.setSampleId(s.getId());
+//                    newSample.setDepth(totalDepth);
+////                    int varFreq = Integer.parseInt(depths[1]);
+//                    newSample.setVariantFrequency(varFreq);
+//                    zygosity.computeZygosityStatus(newSample.getVariantFrequency(), newSample.getDepth(), s.getGender(), v, newSample);
+//
+//                    int zygPercentRead = varFreq / newSample.getDepth();
+//                    newSample.setZygosityPercentRead(zygPercentRead);
+//                    samples.add(newSample);
                     vars.add(v);
 
                 }
 //            vars.add(v);
+
+        }
+        ArrayList<VariantMapData> varsForSamples = new ArrayList<>();
+        varsForSamples.addAll(vars);
+        varsForSamples.addAll(existing);
+        for (int i = 9; i < data.length; i++) {
+            String[] formatData = data[i].split(":");
+            if (Utils.stringsAreEqual(formatData[0],"0/0"))
+                continue;
+            depths = formatData[1].split(","); // first is ref, following are alleles
+            totalDepth = Integer.parseInt(formatData[2]);
+            if (totalDepth==0)
+            {
+                zeroDepthCnt++;
+                continue;
+            }
+            Sample s = sampleMap.get(i);
+            for (int j = 0; j < varsForSamples.size(); j++) {
+                VariantMapData dbVar = varsForSamples.get(j);
+                int varFreq = Integer.parseInt(depths[j+1]);
+                int sampleCnt = dao.getVariantSampleDetailCount((int) v.getId(), s.getId());
+                if (sampleCnt == 0 && varFreq != 0) {
+                    VariantSampleDetail newSample = new VariantSampleDetail();
+                    newSample.setId(dbVar.getId());
+                    newSample.setSampleId(s.getId());
+                    newSample.setDepth(totalDepth);
+                    newSample.setVariantFrequency(varFreq);
+                    zygosity.computeZygosityStatus(newSample.getVariantFrequency(), newSample.getDepth(), s.getGender(), dbVar, newSample);
+
+                    int zygPercentRead = varFreq / newSample.getDepth();
+                    newSample.setZygosityPercentRead(zygPercentRead);
+                    samples.add(newSample);
+
+                }
             }
         }
-        return vars;
+        if (!vars.isEmpty()){
+            dao.insertVariantRgdIds(vars);
+            dao.insertVariants(vars);
+            dao.insertVariantMapData(vars);
+        }
+        if (!samples.isEmpty()){
+            totalSamples += samples.size();
+            dao.insertVariantSample(samples);
+        }
+        return vars.size();
     }
 
     Integer getStrainRgdId(String sampleName) throws Exception {
@@ -542,5 +614,21 @@ public class HrdpVariants {
 
     public int getMapKey() {
         return mapKey;
+    }
+
+    public void setInputFile(String inputFile) {
+        this.inputFile = inputFile;
+    }
+
+    public String getInputFile() {
+        return inputFile;
+    }
+
+    public Map<String, Integer> getColNameToSampleId() {
+        return colNameToSampleId;
+    }
+
+    public void setColNameToSampleId(Map<String, Integer> colNameToSampleId) {
+        this.colNameToSampleId = colNameToSampleId;
     }
 }

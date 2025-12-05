@@ -39,6 +39,11 @@ public class DAO {
         return sampleDAO.getSampleByAnalysisNameAndMapKey(name,mapKey);
     }
 
+    public Sample getSampleBySampleId(int sampleId) throws Exception {
+        sampleDAO.setDataSource(getVariantDataSource());
+        return sampleDAO.getSampleBySampleId(sampleId);
+    }
+
     public Integer getStrainRgdIdByTaglessStrainSymbol(String strainName) throws Exception {
         return sdao.getStrainRgdIdByTaglessStrainSymbol(strainName);
     }
@@ -120,6 +125,14 @@ public class DAO {
         q.declareParameter(new SqlParameter(Types.VARCHAR));
         q.declareParameter(new SqlParameter(Types.INTEGER));
         return q.execute(v.getMapKey(), v.getChromosome(), v.getStartPos());
+    }
+
+    public List<VariantMapData> getVariantByRsId(VariantMapData v) throws Exception {
+        String sql = "SELECT * FROM variant v inner join variant_map_data vmd on v.rgd_id=vmd.rgd_id where vmd.map_key=? v.rs_id=?";
+        VariantMapQuery q = new VariantMapQuery(getVariantDataSource(), sql);
+        q.declareParameter(new SqlParameter(Types.INTEGER));
+        q.declareParameter(new SqlParameter(Types.VARCHAR));
+        return q.execute(v.getMapKey(), v.getRsId());
     }
 
     public List<VariantMapData> getVariantsWithGeneLocation(int mapKey, String chr, int start, int stop) throws Exception {
