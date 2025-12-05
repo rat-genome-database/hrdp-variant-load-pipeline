@@ -469,7 +469,7 @@ public class HrdpVariants {
         varsForSamples.addAll(existing);
         for (int i = 9; i < data.length; i++) {
             String[] formatData = data[i].split(":");
-            if (Utils.stringsAreEqual(formatData[0],"0/0"))
+            if (Utils.stringsAreEqual(formatData[0],"0/0") || Utils.stringsAreEqual(formatData[0],"./."))
                 continue;
             depths = formatData[1].split(","); // first is ref, following are alleles
             try {
