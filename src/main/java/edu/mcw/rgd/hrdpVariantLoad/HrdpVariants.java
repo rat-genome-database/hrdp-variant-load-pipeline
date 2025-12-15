@@ -25,6 +25,7 @@ public class HrdpVariants {
     private String inputDir;
     private String inputFile;
     private Map<String, Integer> colNameToSampleId;
+    private Map<String, Integer> colNameToSampleId7;
     private final DAO dao = new DAO();
     private SimpleDateFormat sdt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     private int zeroDepthCnt = 0;
@@ -97,25 +98,19 @@ public class HrdpVariants {
                 // get sample from column names, and assign to map
                 String[] splitCols = lineData.split("\t");
                 for (int i = 9; i < splitCols.length; i++){
-                    Integer sampleId = colNameToSampleId.get(splitCols[i]);
+                    Integer sampleId = colNameToSampleId7.get(splitCols[i]);
                     if (sampleId != null) {
                         Sample s = dao.getSampleBySampleId(sampleId);
                         strainSamples.put(i,s);
                     }
+                    else
+                        System.out.println(splitCols[i] + " not found!");
                 }
                 continue;
             }
 
             totalVars += parseLineData(lineData, strainSamples, tobeUpdated);
-//            variants.addAll(vars);
-//            if (samples.size()>=50000){
-////                logger.info("\t\tNew samples being created: " + samples.size());
-//                dao.insertVariantSample(samples);
-//                totalSamples += samples.size();
-//                samples.clear();
-//            }
-//            if (!vars.isEmpty())
-//                variants.addAll(vars);
+
 
         } // end of file read
         if (zeroDepthCnt!=0){
@@ -579,5 +574,13 @@ public class HrdpVariants {
 
     public void setColNameToSampleId(Map<String, Integer> colNameToSampleId) {
         this.colNameToSampleId = colNameToSampleId;
+    }
+
+    public Map<String, Integer> getColNameToSampleId7() {
+        return colNameToSampleId7;
+    }
+
+    public void setColNameToSampleId7(Map<String, Integer> colNameToSampleId7) {
+        this.colNameToSampleId7 = colNameToSampleId7;
     }
 }
