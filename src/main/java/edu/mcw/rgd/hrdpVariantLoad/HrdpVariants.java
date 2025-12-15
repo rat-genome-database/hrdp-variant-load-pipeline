@@ -379,7 +379,7 @@ public class HrdpVariants {
                         copy.setStartPos(v.getStartPos()+v.getReferenceNucleotide().length());
                         copy.setEndPos(v.getStartPos()+1);
                         copy.setReferenceNucleotide(null);
-                        var = var.replaceFirst(v.getPaddingBase(),"");
+                        var = var.replaceFirst(copy.getPaddingBase(),"");
                         copy.setVariantNucleotide(var);
                         copy.setVariantType("insertion");
                     } else {
