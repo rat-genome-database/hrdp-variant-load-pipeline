@@ -4,9 +4,9 @@
         <property name="version" value="HRDPVariant Loader -- Build from December 2, 2025"/>
         <property name="sampleIdStart" value="3148"/>
         <property name="inputDir" value="data/SNPs"/>
-<!--        <property name="inputFile" value="data/GRCr8/HRDP_146smp_HPJoint_GATK4_GRCr8_SNPs_HF_PASS.vcf.gz"/>-->
-        <property name="inputFile" value="data/rat7.2/HRDP_smp146_HPJoint_GATK4_rnBN7_INDELs_HF_PASS_snpEff.vcf.gz"/>
-        <property name="mapKey" value="372"/>
+        <property name="inputFile" value="data/GRCr8/HRDP_146smp_HPJoint_GATK4_GRCr8_SNPs_HF_PASS.vcf.gz"/>
+<!--        <property name="inputFile" value="data/rat7.2/HRDP_smp146_HPJoint_GATK4_rnBN7_INDELs_HF_PASS_snpEff.vcf.gz"/>-->
+        <property name="mapKey" value="380"/>
         <property name="colNameToSampleId">
             <map>
                 <entry key="ACI_EurMcwi_2019" value="380000"/>
