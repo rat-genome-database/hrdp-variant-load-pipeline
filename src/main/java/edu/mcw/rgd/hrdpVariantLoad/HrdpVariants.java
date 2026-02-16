@@ -264,7 +264,7 @@ public class HrdpVariants {
                                         v.setEndPos(v.getStartPos()+v.getReferenceNucleotide().length());
                                     }
                                     else {
-                                        v.setVariantType("snp");
+                                        v.setVariantType("snv");
                                         v.setEndPos(v.getStartPos()+1);
                                     }
                                 } else if (v.getReferenceNucleotide().length() > v.getVariantNucleotide().length()) {
