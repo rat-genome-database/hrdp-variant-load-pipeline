@@ -98,7 +98,7 @@ public class HrdpVariants {
                 // get sample from column names, and assign to map
                 String[] splitCols = lineData.split("\t");
                 for (int i = 9; i < splitCols.length; i++){
-                    Integer sampleId = colNameToSampleId7.get(splitCols[i]);
+                    Integer sampleId = colNameToSampleId.get(splitCols[i]);
                     if (sampleId != null) {
                         Sample s = dao.getSampleBySampleId(sampleId);
                         strainSamples.put(i,s);
