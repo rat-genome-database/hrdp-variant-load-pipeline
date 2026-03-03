@@ -210,6 +210,9 @@ public class HrdpVariants {
                     if (data[i].contains(",")) {
                         needCopyVar = true;
                         v.setVariantNucleotide(data[i]);
+                        // Compute endPos from REF length so the genic check
+                        // has a valid genomic range instead of 0
+                        v.setEndPos(v.getStartPos() + v.getReferenceNucleotide().length());
                     }
                     else {
 
