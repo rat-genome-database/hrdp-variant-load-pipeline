@@ -304,10 +304,6 @@ public class HrdpVariants {
                     break;
             }
         }
-        if (isGenic(v))
-            v.setGenicStatus( "GENIC");
-        else
-            v.setGenicStatus("INTERGENIC" );
         v.setMapKey(mapKey);
         v.setSpeciesTypeKey(3);
         List<VariantMapData> dbVars;
@@ -409,6 +405,10 @@ public class HrdpVariants {
                 copy.setMapKey(mapKey);
                 copy.setGenicStatus(v.getGenicStatus());
                 copy.setSpeciesTypeKey(3);
+                if (isGenic(copy))
+                    copy.setGenicStatus( "GENIC");
+                else
+                    copy.setGenicStatus("INTERGENIC" );
 //                variantCopies.add(copy);
                 boolean exist = false;
                 for (VariantMapData dbVar : dbVars) {
@@ -427,6 +427,7 @@ public class HrdpVariants {
                     RgdId r = dao.createRgdId(RgdId.OBJECT_KEY_VARIANTS, "ACTIVE", "created by HRDP Load Pipeline", mapKey);
                     copy.setId(r.getRgdId());
 //                    v.setId(0);
+
                     newVars.add(copy);
 
                 }
@@ -436,29 +437,33 @@ public class HrdpVariants {
             vars.addAll(newVars);
         }
         else {
-                boolean exist = false;
-                for (VariantMapData dbVar : dbVars) {
-                    if (Utils.stringsAreEqual(v.getReferenceNucleotide(), dbVar.getReferenceNucleotide()) && Utils.stringsAreEqual(v.getVariantNucleotide(), dbVar.getVariantNucleotide())
-                            && v.getStartPos() == dbVar.getStartPos()) {
-                        exist = true;
-                        existing.add(dbVar);
+            if (isGenic(v))
+                v.setGenicStatus( "GENIC");
+            else
+                v.setGenicStatus("INTERGENIC" );
+            boolean exist = false;
+            for (VariantMapData dbVar : dbVars) {
+                if (Utils.stringsAreEqual(v.getReferenceNucleotide(), dbVar.getReferenceNucleotide()) && Utils.stringsAreEqual(v.getVariantNucleotide(), dbVar.getVariantNucleotide())
+                        && v.getStartPos() == dbVar.getStartPos()) {
+                    exist = true;
+                    existing.add(dbVar);
 //
 //                        }
-                        if (dbVar.getEndPos() != v.getEndPos() && v.getEndPos() != 0) {
-                            dbVar.setEndPos(v.getEndPos());
-                            tobeUpdated.add(dbVar);
-                        }
-                        break;
+                    if (dbVar.getEndPos() != v.getEndPos() && v.getEndPos() != 0) {
+                        dbVar.setEndPos(v.getEndPos());
+                        tobeUpdated.add(dbVar);
                     }
+                    break;
                 }
-                if (!exist) {
+            }
+            if (!exist) {
 
-                    RgdId r = dao.createRgdId(RgdId.OBJECT_KEY_VARIANTS, "ACTIVE", "created by HRDP Load Pipeline", mapKey);
-                    v.setId(r.getRgdId());
+                RgdId r = dao.createRgdId(RgdId.OBJECT_KEY_VARIANTS, "ACTIVE", "created by HRDP Load Pipeline", mapKey);
+                v.setId(r.getRgdId());
 //                    v.setId(0);
-                    vars.add(v);
+                vars.add(v);
 
-                }
+            }
 //            vars.add(v);
 
         }
